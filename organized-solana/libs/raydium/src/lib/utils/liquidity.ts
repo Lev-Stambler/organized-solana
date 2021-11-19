@@ -1,51 +1,60 @@
-import BigNumber from 'bignumber.js'
+import BigNumber from 'bignumber.js';
 // @ts-ignore
-import { nu64, struct, u8 } from 'buffer-layout'
+import { nu64, struct, u8 } from 'buffer-layout';
 
-import { publicKey, u128, u64 } from '@project-serum/borsh'
-import { closeAccount } from '@project-serum/serum/lib/token-instructions'
-import { Connection, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js'
+import { publicKey, u128, u64 } from '@project-serum/borsh';
+import { closeAccount } from '@project-serum/serum/lib/token-instructions';
+import {
+  Connection,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+} from '@solana/web3.js';
 
-import { TOKEN_PROGRAM_ID } from './ids'
+import { TOKEN_PROGRAM_ID } from './ids';
 import {
   getLpMintByTokenMintAddresses,
   getPoolByLpMintAddress,
   getPoolByTokenMintAddresses,
   LIQUIDITY_POOLS,
-  LiquidityPoolInfo
-} from './pools'
-import { TokenAmount } from './safe-math'
-import { LP_TOKENS, NATIVE_SOL, TokenInfo, TOKENS } from './tokens'
+  LiquidityPoolInfo,
+} from './pools';
+import { TokenAmount } from './safe-math';
+import { LP_TOKENS, NATIVE_SOL, TokenInfo, TOKENS } from './tokens';
 import {
   commitment,
   createAssociatedTokenAccountIfNotExist,
   createTokenAccountIfNotExist,
   getMultipleAccounts,
-  sendTransaction
-} from './web3'
-import { getBigNumber, MINT_LAYOUT } from './layouts'
+  sendTransaction,
+} from './web3';
+import { getBigNumber, MINT_LAYOUT } from './layouts';
 
-export { getLpMintByTokenMintAddresses, getPoolByLpMintAddress, getPoolByTokenMintAddresses }
+export {
+  getLpMintByTokenMintAddresses,
+  getPoolByLpMintAddress,
+  getPoolByTokenMintAddresses,
+};
 
 export function getPrice(poolInfo: LiquidityPoolInfo, coinBase = true) {
-  const { coin, pc } = poolInfo
+  const { coin, pc } = poolInfo;
 
   if (!coin.balance || !pc.balance) {
-    return new BigNumber(0)
+    return new BigNumber(0);
   }
 
   if (poolInfo.version === 5) {
-    const { currentK = 1 } = poolInfo
-    const systemDecimal = Math.max(coin.decimals, pc.decimals)
-    const k = currentK / (10 ** systemDecimal * 10 ** systemDecimal)
-    const y = parseFloat(coin.balance.fixed())
-    let price = Math.sqrt(((10 - 1) * y * y) / (10 * y * y - k))
-    if (!coinBase) price = 1 / price
-    return new BigNumber(price)
+    const { currentK = 1 } = poolInfo;
+    const systemDecimal = Math.max(coin.decimals, pc.decimals);
+    const k = currentK / (10 ** systemDecimal * 10 ** systemDecimal);
+    const y = parseFloat(coin.balance.fixed());
+    let price = Math.sqrt(((10 - 1) * y * y) / (10 * y * y - k));
+    if (!coinBase) price = 1 / price;
+    return new BigNumber(price);
   } else if (coinBase) {
-    return pc.balance.toEther().dividedBy(coin.balance.toEther())
+    return pc.balance.toEther().dividedBy(coin.balance.toEther());
   } else {
-    return coin.balance.toEther().dividedBy(pc.balance.toEther())
+    return coin.balance.toEther().dividedBy(pc.balance.toEther());
   }
 }
 
@@ -56,29 +65,32 @@ export function getOutAmount(
   toCoinMint: string,
   slippage: number
 ) {
-  const { coin, pc } = poolInfo
+  const { coin, pc } = poolInfo;
 
-  const price = getPrice(poolInfo)
-  const fromAmount = new BigNumber(amount)
-  let outAmount = new BigNumber(0)
+  const price = getPrice(poolInfo);
+  const fromAmount = new BigNumber(amount);
+  let outAmount = new BigNumber(0);
 
-  const percent = new BigNumber(100).plus(slippage).dividedBy(100)
+  const percent = new BigNumber(100).plus(slippage).dividedBy(100);
 
   if (!coin.balance || !pc.balance) {
-    return outAmount
+    return outAmount;
   }
 
   if (fromCoinMint === coin.mintAddress && toCoinMint === pc.mintAddress) {
     // outcoin is pc
-    outAmount = fromAmount.multipliedBy(price)
-    outAmount = outAmount.multipliedBy(percent)
-  } else if (fromCoinMint === pc.mintAddress && toCoinMint === coin.mintAddress) {
+    outAmount = fromAmount.multipliedBy(price);
+    outAmount = outAmount.multipliedBy(percent);
+  } else if (
+    fromCoinMint === pc.mintAddress &&
+    toCoinMint === coin.mintAddress
+  ) {
     // outcoin is coin
-    outAmount = fromAmount.dividedBy(price)
-    outAmount = outAmount.multipliedBy(percent)
+    outAmount = fromAmount.dividedBy(price);
+    outAmount = outAmount.multipliedBy(percent);
   }
 
-  return outAmount
+  return outAmount;
 }
 
 export function getOutAmountStable(
@@ -88,30 +100,33 @@ export function getOutAmountStable(
   toCoinMint: string,
   slippage: number
 ) {
-  const { coin, pc, currentK } = poolInfo
-  const systemDecimal = Math.max(coin.decimals, pc.decimals)
-  const k = currentK / (10 ** systemDecimal * 10 ** systemDecimal)
-  const y = parseFloat(coin.balance.fixed())
-  const price = Math.sqrt(((10 - 1) * y * y) / (10 * y * y - k))
+  const { coin, pc, currentK } = poolInfo;
+  const systemDecimal = Math.max(coin.decimals, pc.decimals);
+  const k = currentK / (10 ** systemDecimal * 10 ** systemDecimal);
+  const y = parseFloat(coin.balance.fixed());
+  const price = Math.sqrt(((10 - 1) * y * y) / (10 * y * y - k));
 
-  const amountIn = parseFloat(amount)
-  let amountOut = 1
+  const amountIn = parseFloat(amount);
+  let amountOut = 1;
   if (fromCoinMint === coin.mintAddress && toCoinMint === pc.mintAddress) {
     // outcoin is pc
-    amountOut = amountIn * price
-  } else if (fromCoinMint === pc.mintAddress && toCoinMint === coin.mintAddress) {
+    amountOut = amountIn * price;
+  } else if (
+    fromCoinMint === pc.mintAddress &&
+    toCoinMint === coin.mintAddress
+  ) {
     // outcoin is coin
-    amountOut = amountIn / price
+    amountOut = amountIn / price;
   }
 
-  const amountOutWithSlippage = amountOut / (1 - slippage / 100)
+  const amountOutWithSlippage = amountOut / (1 - slippage / 100);
 
   // const price = Math.sqrt((10 - 1) * y * y /(10 * y * y - k))
   // const afterY = y - amountOut
   // const afterPrice = Math.sqrt((10 - 1) * afterY  * afterY /(10 * afterY * afterY - k))
   // const priceImpact = (beforePrice - afterPrice) / beforePrice * 100
 
-  return new BigNumber(amountOutWithSlippage)
+  return new BigNumber(amountOutWithSlippage);
 }
 
 /* eslint-disable */
@@ -128,36 +143,46 @@ export async function addLiquidity(
   toAmount: string | undefined | null,
   fixedCoin: string
 ): Promise<string> {
-  if (!connection || !wallet) throw new Error('Miss connection')
+  if (!connection || !wallet) throw new Error('Miss connection');
   if (!poolInfo || !fromCoin || !toCoin) {
-    throw new Error('Miss pool infomations')
+    throw new Error('Miss pool infomations');
   }
   if (!fromCoinAccount || !toCoinAccount) {
-    throw new Error('Miss account infomations')
+    throw new Error('Miss account infomations');
   }
   if (!fromAmount || !toAmount) {
-    throw new Error('Miss amount infomations')
+    throw new Error('Miss amount infomations');
   }
 
-  const transaction = new Transaction()
-  const signers: any = []
+  const transaction = new Transaction();
+  const signers: any = [];
 
-  const owner = wallet.publicKey
+  const owner = wallet.publicKey;
 
-  const userAccounts = [new PublicKey(fromCoinAccount), new PublicKey(toCoinAccount)]
-  const userAmounts = [fromAmount, toAmount]
+  const userAccounts = [
+    new PublicKey(fromCoinAccount),
+    new PublicKey(toCoinAccount),
+  ];
+  const userAmounts = [fromAmount, toAmount];
 
-  if (poolInfo.coin.mintAddress === toCoin.mintAddress && poolInfo.pc.mintAddress === fromCoin.mintAddress) {
-    userAccounts.reverse()
-    userAmounts.reverse()
+  if (
+    poolInfo.coin.mintAddress === toCoin.mintAddress &&
+    poolInfo.pc.mintAddress === fromCoin.mintAddress
+  ) {
+    userAccounts.reverse();
+    userAmounts.reverse();
   }
 
-  const userCoinTokenAccount = userAccounts[0]
-  const userPcTokenAccount = userAccounts[1]
-  const coinAmount = getBigNumber(new TokenAmount(userAmounts[0], poolInfo.coin.decimals, false).wei)
-  const pcAmount = getBigNumber(new TokenAmount(userAmounts[1], poolInfo.pc.decimals, false).wei)
+  const userCoinTokenAccount = userAccounts[0];
+  const userPcTokenAccount = userAccounts[1];
+  const coinAmount = getBigNumber(
+    new TokenAmount(userAmounts[0], poolInfo.coin.decimals, false).wei
+  );
+  const pcAmount = getBigNumber(
+    new TokenAmount(userAmounts[1], poolInfo.pc.decimals, false).wei
+  );
 
-  let wrappedCoinSolAccount
+  let wrappedCoinSolAccount;
   if (poolInfo.coin.mintAddress === NATIVE_SOL.mintAddress) {
     wrappedCoinSolAccount = await createTokenAccountIfNotExist(
       connection,
@@ -167,9 +192,9 @@ export async function addLiquidity(
       coinAmount + 1e7,
       transaction,
       signers
-    )
+    );
   }
-  let wrappedSolAccount
+  let wrappedSolAccount;
   if (poolInfo.pc.mintAddress === NATIVE_SOL.mintAddress) {
     wrappedSolAccount = await createTokenAccountIfNotExist(
       connection,
@@ -179,7 +204,7 @@ export async function addLiquidity(
       pcAmount + 1e7,
       transaction,
       signers
-    )
+    );
   }
 
   let userLpTokenAccount = await createAssociatedTokenAccountIfNotExist(
@@ -187,7 +212,7 @@ export async function addLiquidity(
     owner,
     poolInfo.lp.mintAddress,
     transaction
-  )
+  );
 
   transaction.add(
     [4, 5].includes(poolInfo.version)
@@ -235,28 +260,28 @@ export async function addLiquidity(
           pcAmount,
           fixedCoin === poolInfo.coin.mintAddress ? 0 : 1
         )
-  )
+  );
 
   if (wrappedCoinSolAccount) {
     transaction.add(
       closeAccount({
         source: wrappedCoinSolAccount,
         destination: owner,
-        owner: owner
+        owner: owner,
       })
-    )
+    );
   }
   if (wrappedSolAccount) {
     transaction.add(
       closeAccount({
         source: wrappedSolAccount,
         destination: owner,
-        owner: owner
+        owner: owner,
       })
-    )
+    );
   }
 
-  return await sendTransaction(connection, wallet, transaction, signers)
+  return await sendTransaction(connection, wallet, transaction, signers);
 }
 
 export async function removeLiquidity(
@@ -268,22 +293,24 @@ export async function removeLiquidity(
   toCoinAccount: string | undefined | null,
   amount: string | undefined | null
 ) {
-  if (!connection || !wallet) throw new Error('Miss connection')
-  if (!poolInfo) throw new Error('Miss pool infomations')
+  if (!connection || !wallet) throw new Error('Miss connection');
+  if (!poolInfo) throw new Error('Miss pool infomations');
 
-  if (!lpAccount) throw new Error('Miss account infomations')
+  if (!lpAccount) throw new Error('Miss account infomations');
 
-  if (!amount) throw new Error('Miss amount infomations')
+  if (!amount) throw new Error('Miss amount infomations');
 
-  const transaction = new Transaction()
-  const signers: any = []
+  const transaction = new Transaction();
+  const signers: any = [];
 
-  const owner = wallet.publicKey
+  const owner = wallet.publicKey;
 
-  const lpAmount = getBigNumber(new TokenAmount(amount, poolInfo.lp.decimals, false).wei)
+  const lpAmount = getBigNumber(
+    new TokenAmount(amount, poolInfo.lp.decimals, false).wei
+  );
 
-  let needCloseFromTokenAccount = false
-  let newFromTokenAccount
+  let needCloseFromTokenAccount = false;
+  let newFromTokenAccount;
   if (poolInfo.coin.mintAddress === NATIVE_SOL.mintAddress) {
     newFromTokenAccount = await createTokenAccountIfNotExist(
       connection,
@@ -293,19 +320,19 @@ export async function removeLiquidity(
       null,
       transaction,
       signers
-    )
-    needCloseFromTokenAccount = true
+    );
+    needCloseFromTokenAccount = true;
   } else {
     newFromTokenAccount = await createAssociatedTokenAccountIfNotExist(
       fromCoinAccount,
       owner,
       poolInfo.coin.mintAddress,
       transaction
-    )
+    );
   }
 
-  let needCloseToTokenAccount = false
-  let newToTokenAccount
+  let needCloseToTokenAccount = false;
+  let newToTokenAccount;
   if (poolInfo.pc.mintAddress === NATIVE_SOL.mintAddress) {
     newToTokenAccount = await createTokenAccountIfNotExist(
       connection,
@@ -315,15 +342,17 @@ export async function removeLiquidity(
       null,
       transaction,
       signers
-    )
-    needCloseToTokenAccount = true
+    );
+    needCloseToTokenAccount = true;
   } else {
     newToTokenAccount = await createAssociatedTokenAccountIfNotExist(
       toCoinAccount,
       owner,
-      poolInfo.pc.mintAddress === NATIVE_SOL.mintAddress ? TOKENS.WSOL.mintAddress : poolInfo.pc.mintAddress,
+      poolInfo.pc.mintAddress === NATIVE_SOL.mintAddress
+        ? TOKENS.WSOL.mintAddress
+        : poolInfo.pc.mintAddress,
       transaction
-    )
+    );
   }
 
   transaction.add(
@@ -380,28 +409,28 @@ export async function removeLiquidity(
 
           lpAmount
         )
-  )
+  );
 
   if (needCloseFromTokenAccount) {
     transaction.add(
       closeAccount({
         source: newFromTokenAccount,
         destination: owner,
-        owner: owner
+        owner: owner,
       })
-    )
+    );
   }
   if (needCloseToTokenAccount) {
     transaction.add(
       closeAccount({
         source: newToTokenAccount,
         destination: owner,
-        owner: owner
+        owner: owner,
       })
-    )
+    );
   }
 
-  return await sendTransaction(connection, wallet, transaction, signers)
+  return await sendTransaction(connection, wallet, transaction, signers);
 }
 
 export function addLiquidityInstruction(
@@ -427,7 +456,12 @@ export function addLiquidityInstruction(
   maxPcAmount: number,
   fixedFromCoin: number
 ): TransactionInstruction {
-  const dataLayout = struct([u8('instruction'), nu64('maxCoinAmount'), nu64('maxPcAmount'), nu64('fixedFromCoin')])
+  const dataLayout = struct([
+    u8('instruction'),
+    nu64('maxCoinAmount'),
+    nu64('maxPcAmount'),
+    nu64('fixedFromCoin'),
+  ]);
 
   const keys = [
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -442,25 +476,25 @@ export function addLiquidityInstruction(
     { pubkey: userCoinTokenAccount, isSigner: false, isWritable: true },
     { pubkey: userPcTokenAccount, isSigner: false, isWritable: true },
     { pubkey: userLpTokenAccount, isSigner: false, isWritable: true },
-    { pubkey: userOwner, isSigner: true, isWritable: false }
-  ]
+    { pubkey: userOwner, isSigner: true, isWritable: false },
+  ];
 
-  const data = Buffer.alloc(dataLayout.span)
+  const data = Buffer.alloc(dataLayout.span);
   dataLayout.encode(
     {
       instruction: 3,
       maxCoinAmount,
       maxPcAmount,
-      fixedFromCoin
+      fixedFromCoin,
     },
     data
-  )
+  );
 
   return new TransactionInstruction({
     keys,
     programId,
-    data
-  })
+    data,
+  });
 }
 
 export function addLiquidityInstructionV4(
@@ -486,7 +520,12 @@ export function addLiquidityInstructionV4(
   maxPcAmount: number,
   fixedFromCoin: number
 ): TransactionInstruction {
-  const dataLayout = struct([u8('instruction'), nu64('maxCoinAmount'), nu64('maxPcAmount'), nu64('fixedFromCoin')])
+  const dataLayout = struct([
+    u8('instruction'),
+    nu64('maxCoinAmount'),
+    nu64('maxPcAmount'),
+    nu64('fixedFromCoin'),
+  ]);
 
   const keys = [
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -501,25 +540,25 @@ export function addLiquidityInstructionV4(
     { pubkey: userCoinTokenAccount, isSigner: false, isWritable: true },
     { pubkey: userPcTokenAccount, isSigner: false, isWritable: true },
     { pubkey: userLpTokenAccount, isSigner: false, isWritable: true },
-    { pubkey: userOwner, isSigner: true, isWritable: false }
-  ]
+    { pubkey: userOwner, isSigner: true, isWritable: false },
+  ];
 
-  const data = Buffer.alloc(dataLayout.span)
+  const data = Buffer.alloc(dataLayout.span);
   dataLayout.encode(
     {
       instruction: 3,
       maxCoinAmount,
       maxPcAmount,
-      fixedFromCoin
+      fixedFromCoin,
     },
     data
-  )
+  );
 
   return new TransactionInstruction({
     keys,
     programId,
-    data
-  })
+    data,
+  });
 }
 
 export function removeLiquidityInstruction(
@@ -549,7 +588,7 @@ export function removeLiquidityInstruction(
 
   amount: number
 ): TransactionInstruction {
-  const dataLayout = struct([u8('instruction'), nu64('amount')])
+  const dataLayout = struct([u8('instruction'), nu64('amount')]);
 
   const keys = [
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -570,23 +609,23 @@ export function removeLiquidityInstruction(
     { pubkey: userLpTokenAccount, isSigner: false, isWritable: true },
     { pubkey: userCoinTokenAccount, isSigner: false, isWritable: true },
     { pubkey: userPcTokenAccount, isSigner: false, isWritable: true },
-    { pubkey: userOwner, isSigner: true, isWritable: false }
-  ]
+    { pubkey: userOwner, isSigner: true, isWritable: false },
+  ];
 
-  const data = Buffer.alloc(dataLayout.span)
+  const data = Buffer.alloc(dataLayout.span);
   dataLayout.encode(
     {
       instruction: 4,
-      amount: amount
+      amount: amount,
     },
     data
-  )
+  );
 
   return new TransactionInstruction({
     keys,
     programId,
-    data
-  })
+    data,
+  });
 }
 
 export function removeLiquidityInstructionV4(
@@ -616,7 +655,7 @@ export function removeLiquidityInstructionV4(
 
   amount: number
 ): TransactionInstruction {
-  const dataLayout = struct([u8('instruction'), nu64('amount')])
+  const dataLayout = struct([u8('instruction'), nu64('amount')]);
 
   const keys = [
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -637,23 +676,23 @@ export function removeLiquidityInstructionV4(
     { pubkey: userLpTokenAccount, isSigner: false, isWritable: true },
     { pubkey: userCoinTokenAccount, isSigner: false, isWritable: true },
     { pubkey: userPcTokenAccount, isSigner: false, isWritable: true },
-    { pubkey: userOwner, isSigner: true, isWritable: false }
-  ]
+    { pubkey: userOwner, isSigner: true, isWritable: false },
+  ];
 
-  const data = Buffer.alloc(dataLayout.span)
+  const data = Buffer.alloc(dataLayout.span);
   dataLayout.encode(
     {
       instruction: 4,
-      amount: amount
+      amount: amount,
     },
     data
-  )
+  );
 
   return new TransactionInstruction({
     keys,
     programId,
-    data
-  })
+    data,
+  });
 }
 
 export const AMM_INFO_LAYOUT = struct([
@@ -692,8 +731,8 @@ export const AMM_INFO_LAYOUT = struct([
   publicKey('poolWithdrawQueue'),
   publicKey('poolTempLpTokenAccount'),
   publicKey('ammOwner'),
-  publicKey('pnlOwner')
-])
+  publicKey('pnlOwner'),
+]);
 
 export const AMM_INFO_LAYOUT_V3 = struct([
   u64('status'),
@@ -735,8 +774,8 @@ export const AMM_INFO_LAYOUT_V3 = struct([
   publicKey('poolTempLpTokenAccount'),
   publicKey('ammOwner'),
   publicKey('pnlOwner'),
-  publicKey('srmTokenAccount')
-])
+  publicKey('srmTokenAccount'),
+]);
 
 export const AMM_INFO_LAYOUT_V4 = struct([
   u64('status'),
@@ -790,8 +829,8 @@ export const AMM_INFO_LAYOUT_V4 = struct([
   publicKey('poolWithdrawQueue'),
   publicKey('poolTempLpTokenAccount'),
   publicKey('ammOwner'),
-  publicKey('pnlOwner')
-])
+  publicKey('pnlOwner'),
+]);
 
 export const AMM_INFO_LAYOUT_STABLE = struct([
   u64('status'),
@@ -855,112 +894,140 @@ export const AMM_INFO_LAYOUT_STABLE = struct([
 
   u128('currentK'),
   u128('padding1'),
-  publicKey('padding2')
-])
+  publicKey('padding2'),
+]);
 
-export async function getLpMintInfo(conn: any, mintAddress: string, coin: any, pc: any): Promise<TokenInfo> {
-  let lpInfo = Object.values(LP_TOKENS).find((item) => item.mintAddress === mintAddress)
+export async function getLpMintInfo(
+  conn: any,
+  mintAddress: string,
+  coin: any,
+  pc: any
+): Promise<TokenInfo> {
+  let lpInfo = Object.values(LP_TOKENS).find(
+    (item) => item.mintAddress === mintAddress
+  );
   if (!lpInfo) {
-    const mintAll = await getMultipleAccounts(conn, [new PublicKey(mintAddress)], commitment)
+    const mintAll = await getMultipleAccounts(
+      conn,
+      [new PublicKey(mintAddress)],
+      commitment
+    );
     if (mintAll !== null) {
-      const data = Buffer.from(mintAll[0]?.account.data ?? '')
-      const mintLayoutData = MINT_LAYOUT.decode(data)
+      const data = Buffer.from(mintAll[0]?.account.data ?? '');
+      const mintLayoutData = MINT_LAYOUT.decode(data);
       lpInfo = {
         symbol: 'unknown',
         name: 'unknown',
         coin,
         pc,
         mintAddress: mintAddress,
-        decimals: mintLayoutData.decimals
-      }
+        decimals: mintLayoutData.decimals,
+      };
     }
   }
-  return lpInfo
+  return lpInfo;
 }
 
 export async function getLpMintListDecimals(
   conn: any,
   mintAddressInfos: string[]
 ): Promise<{ [name: string]: number }> {
-  const reLpInfoDict: { [name: string]: number } = {}
-  const mintList = [] as PublicKey[]
+  const reLpInfoDict: { [name: string]: number } = {};
+  const mintList = [] as PublicKey[];
   mintAddressInfos.forEach((item) => {
-    let lpInfo = Object.values(LP_TOKENS).find((itemLpToken) => itemLpToken.mintAddress === item)
+    let lpInfo = Object.values(LP_TOKENS).find(
+      (itemLpToken) => itemLpToken.mintAddress === item
+    );
     if (!lpInfo) {
-      mintList.push(new PublicKey(item))
+      mintList.push(new PublicKey(item));
       lpInfo = {
-        decimals: null
-      }
+        decimals: null,
+      };
     }
-    reLpInfoDict[item] = lpInfo.decimals
-  })
+    reLpInfoDict[item] = lpInfo.decimals;
+  });
 
-  const mintAll = await getMultipleAccounts(conn, mintList, commitment)
+  const mintAll = await getMultipleAccounts(conn, mintList, commitment);
   for (let mintIndex = 0; mintIndex < mintAll.length; mintIndex += 1) {
-    const itemMint = mintAll[mintIndex]
+    const itemMint = mintAll[mintIndex];
     if (itemMint) {
-      const mintLayoutData = MINT_LAYOUT.decode(Buffer.from(itemMint.account.data))
-      reLpInfoDict[mintList[mintIndex].toString()] = mintLayoutData.decimals
+      const mintLayoutData = MINT_LAYOUT.decode(
+        Buffer.from(itemMint.account.data)
+      );
+      reLpInfoDict[mintList[mintIndex].toString()] = mintLayoutData.decimals;
     }
   }
-  const reInfo: { [name: string]: number } = {}
+  const reInfo: { [name: string]: number } = {};
   for (const key of Object.keys(reLpInfoDict)) {
     if (reLpInfoDict[key] !== null) {
-      reInfo[key] = reLpInfoDict[key]
+      reInfo[key] = reLpInfoDict[key];
     }
   }
-  return reInfo
+  return reInfo;
 }
 
 export function getLiquidityInfoSimilar(
   ammIdOrMarket: string | undefined,
   from: string | undefined,
   to: string | undefined
-) {
+): LiquidityPoolInfo | undefined {
   // const fromCoin = from === NATIVE_SOL.mintAddress ? TOKENS.WSOL.mintAddress : from
   // const toCoin = to === NATIVE_SOL.mintAddress ? TOKENS.WSOL.mintAddress : to
-  const fromCoin = from === TOKENS.WSOL.mintAddress ? NATIVE_SOL.mintAddress : from
-  const toCoin = to === TOKENS.WSOL.mintAddress ? NATIVE_SOL.mintAddress : to
+  const fromCoin =
+    from === TOKENS.WSOL.mintAddress ? NATIVE_SOL.mintAddress : from;
+  const toCoin = to === TOKENS.WSOL.mintAddress ? NATIVE_SOL.mintAddress : to;
   const knownLiquidity = LIQUIDITY_POOLS.find((item) => {
     if (fromCoin !== undefined && toCoin != undefined && fromCoin === toCoin) {
-      return false
+      return false;
     }
-    if (ammIdOrMarket !== undefined && !(item.ammId === ammIdOrMarket || item.serumMarket === ammIdOrMarket)) {
-      return false
+    if (
+      ammIdOrMarket !== undefined &&
+      !(item.ammId === ammIdOrMarket || item.serumMarket === ammIdOrMarket)
+    ) {
+      return false;
     }
-    if (fromCoin && item.pc.mintAddress !== fromCoin && item.coin.mintAddress !== fromCoin) {
-      return false
+    if (
+      fromCoin &&
+      item.pc.mintAddress !== fromCoin &&
+      item.coin.mintAddress !== fromCoin
+    ) {
+      return false;
     }
-    if (toCoin && item.pc.mintAddress !== toCoin && item.coin.mintAddress !== toCoin) {
-      return false
+    if (
+      toCoin &&
+      item.pc.mintAddress !== toCoin &&
+      item.coin.mintAddress !== toCoin
+    ) {
+      return false;
     }
     if (ammIdOrMarket || (fromCoin && toCoin)) {
-      return true
+      return true;
     }
-    return false
-  })
-  return knownLiquidity
+    return false;
+  });
+  return knownLiquidity;
 }
 
 export function getLiquidityInfo(from: string, to: string) {
-  const fromCoin = from === TOKENS.WSOL.mintAddress ? NATIVE_SOL.mintAddress : from
-  const toCoin = to === TOKENS.WSOL.mintAddress ? NATIVE_SOL.mintAddress : to
+  const fromCoin =
+    from === TOKENS.WSOL.mintAddress ? NATIVE_SOL.mintAddress : from;
+  const toCoin = to === TOKENS.WSOL.mintAddress ? NATIVE_SOL.mintAddress : to;
   return LIQUIDITY_POOLS.filter(
     (item) =>
       item.version === 4 &&
       ((item.coin.mintAddress === fromCoin && item.pc.mintAddress === toCoin) ||
         (item.coin.mintAddress === toCoin && item.pc.mintAddress === fromCoin))
-  )
+  );
 }
 
 export function getQueryVariable(variable: string) {
-  var query = window.location.search.substring(1)
-  var vars = query.split('&')
+  var query = window.location.search.substring(1);
+  var vars = query.split('&');
   for (var i = 0; i < vars.length; i++) {
-    var pair = vars[i].split('=')
+    var pair = vars[i].split('=');
     if (pair[0] == variable) {
-      return pair[1]
+      return pair[1];
     }
   }
-  return undefined
+  return undefined;
 }

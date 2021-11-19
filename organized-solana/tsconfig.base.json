@@ -15,6 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@organized-solana/interfaces": ["libs/interfaces/src/index.ts"],
       "@organized-solana/raydium": ["libs/raydium/src/index.ts"]
     }
   },

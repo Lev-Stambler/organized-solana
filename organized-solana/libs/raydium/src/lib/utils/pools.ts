@@ -1,50 +1,55 @@
-import { cloneDeep } from 'lodash-es'
+import { cloneDeep } from 'lodash-es';
 
 // @ts-ignore
-import SERUM_MARKETS from '@project-serum/serum/lib/markets.json'
+import SERUM_MARKETS from '@project-serum/serum/lib/markets.json';
 
 import {
   LIQUIDITY_POOL_PROGRAM_ID_V2,
   LIQUIDITY_POOL_PROGRAM_ID_V3,
   LIQUIDITY_POOL_PROGRAM_ID_V4,
   SERUM_PROGRAM_ID_V2,
-  SERUM_PROGRAM_ID_V3
-} from './ids'
-import { LP_TOKENS, NATIVE_SOL, TokenInfo, TOKENS } from './tokens'
+  SERUM_PROGRAM_ID_V3,
+} from './ids';
+import { LP_TOKENS, NATIVE_SOL, TokenInfo, TOKENS } from './tokens';
 
 export interface LiquidityPoolInfo {
-  name: string
-  coin: TokenInfo
-  pc: TokenInfo
-  lp: TokenInfo
+  name: string;
+  coin: TokenInfo;
+  pc: TokenInfo;
+  lp: TokenInfo;
 
-  version: number
-  programId: string
+  fees?: {
+    swapFeeNumerator: number;
+    swapFeeDenominator: number;
+  };
 
-  ammId: string
-  ammAuthority: string
-  ammOpenOrders: string
-  ammTargetOrders: string
-  ammQuantities: string
+  version: number;
+  programId: string;
 
-  poolCoinTokenAccount: string
-  poolPcTokenAccount: string
-  poolWithdrawQueue: string
-  poolTempLpTokenAccount: string
+  ammId: string;
+  ammAuthority: string;
+  ammOpenOrders: string;
+  ammTargetOrders: string;
+  ammQuantities: string;
 
-  serumProgramId: string
-  serumMarket: string
-  serumBids?: string
-  serumAsks?: string
-  serumEventQueue?: string
-  serumCoinVaultAccount: string
-  serumPcVaultAccount: string
-  serumVaultSigner: string
+  poolCoinTokenAccount: string;
+  poolPcTokenAccount: string;
+  poolWithdrawQueue: string;
+  poolTempLpTokenAccount: string;
 
-  official: boolean
+  serumProgramId: string;
+  serumMarket: string;
+  serumBids?: string;
+  serumAsks?: string;
+  serumEventQueue?: string;
+  serumCoinVaultAccount: string;
+  serumPcVaultAccount: string;
+  serumVaultSigner: string;
 
-  status?: number
-  currentK?: number
+  official: boolean;
+
+  status?: number;
+  currentK?: number;
 }
 
 /**
@@ -61,15 +66,17 @@ export function getPoolByTokenMintAddresses(
 ): LiquidityPoolInfo | undefined {
   const pool = LIQUIDITY_POOLS.find(
     (pool) =>
-      (pool.coin.mintAddress === coinMintAddress && pool.pc.mintAddress === pcMintAddress) ||
-      (pool.coin.mintAddress === pcMintAddress && pool.pc.mintAddress === coinMintAddress)
-  )
+      (pool.coin.mintAddress === coinMintAddress &&
+        pool.pc.mintAddress === pcMintAddress) ||
+      (pool.coin.mintAddress === pcMintAddress &&
+        pool.pc.mintAddress === coinMintAddress)
+  );
 
   if (pool) {
-    return cloneDeep(pool)
+    return cloneDeep(pool);
   }
 
-  return pool
+  return pool;
 }
 
 export function getPoolListByTokenMintAddresses(
@@ -80,37 +87,57 @@ export function getPoolListByTokenMintAddresses(
   const pool = LIQUIDITY_POOLS.filter((pool) => {
     if (coinMintAddress && pcMintAddress) {
       if (
-        ((pool.coin.mintAddress === coinMintAddress && pool.pc.mintAddress === pcMintAddress) ||
-          (pool.coin.mintAddress === pcMintAddress && pool.pc.mintAddress === coinMintAddress)) &&
+        ((pool.coin.mintAddress === coinMintAddress &&
+          pool.pc.mintAddress === pcMintAddress) ||
+          (pool.coin.mintAddress === pcMintAddress &&
+            pool.pc.mintAddress === coinMintAddress)) &&
         [4, 5].includes(pool.version) &&
         pool.official
       ) {
-        return !(ammIdOrMarket !== undefined && pool.ammId !== ammIdOrMarket && pool.serumMarket !== ammIdOrMarket)
+        return !(
+          ammIdOrMarket !== undefined &&
+          pool.ammId !== ammIdOrMarket &&
+          pool.serumMarket !== ammIdOrMarket
+        );
       }
     } else {
-      return !(ammIdOrMarket !== undefined && pool.ammId !== ammIdOrMarket && pool.serumMarket !== ammIdOrMarket)
+      return !(
+        ammIdOrMarket !== undefined &&
+        pool.ammId !== ammIdOrMarket &&
+        pool.serumMarket !== ammIdOrMarket
+      );
     }
-    return false
-  })
+    return false;
+  });
   if (pool.length > 0) {
-    return cloneDeep(pool)
+    return cloneDeep(pool);
   } else {
     return cloneDeep(
       LIQUIDITY_POOLS.filter((pool) => {
         if (coinMintAddress && pcMintAddress) {
           if (
-            ((pool.coin.mintAddress === coinMintAddress && pool.pc.mintAddress === pcMintAddress) ||
-              (pool.coin.mintAddress === pcMintAddress && pool.pc.mintAddress === coinMintAddress)) &&
+            ((pool.coin.mintAddress === coinMintAddress &&
+              pool.pc.mintAddress === pcMintAddress) ||
+              (pool.coin.mintAddress === pcMintAddress &&
+                pool.pc.mintAddress === coinMintAddress)) &&
             [4, 5].includes(pool.version)
           ) {
-            return !(ammIdOrMarket !== undefined && pool.ammId !== ammIdOrMarket && pool.serumMarket !== ammIdOrMarket)
+            return !(
+              ammIdOrMarket !== undefined &&
+              pool.ammId !== ammIdOrMarket &&
+              pool.serumMarket !== ammIdOrMarket
+            );
           }
         } else {
-          return !(ammIdOrMarket !== undefined && pool.ammId !== ammIdOrMarket && pool.serumMarket !== ammIdOrMarket)
+          return !(
+            ammIdOrMarket !== undefined &&
+            pool.ammId !== ammIdOrMarket &&
+            pool.serumMarket !== ammIdOrMarket
+          );
         }
-        return false
+        return false;
       })
-    )
+    );
   }
 }
 
@@ -121,16 +148,18 @@ export function getLpMintByTokenMintAddresses(
 ): string | null {
   const pool = LIQUIDITY_POOLS.find(
     (pool) =>
-      ((pool.coin.mintAddress === coinMintAddress && pool.pc.mintAddress === pcMintAddress) ||
-        (pool.coin.mintAddress === pcMintAddress && pool.pc.mintAddress === coinMintAddress)) &&
+      ((pool.coin.mintAddress === coinMintAddress &&
+        pool.pc.mintAddress === pcMintAddress) ||
+        (pool.coin.mintAddress === pcMintAddress &&
+          pool.pc.mintAddress === coinMintAddress)) &&
       version.includes(pool.version)
-  )
+  );
 
   if (pool) {
-    return pool.lp.mintAddress
+    return pool.lp.mintAddress;
   }
 
-  return null
+  return null;
 }
 
 export function getLpListByTokenMintAddresses(
@@ -142,46 +171,70 @@ export function getLpListByTokenMintAddresses(
   const pool = LIQUIDITY_POOLS.filter((pool) => {
     if (coinMintAddress && pcMintAddress) {
       if (
-        ((pool.coin.mintAddress === coinMintAddress && pool.pc.mintAddress === pcMintAddress) ||
-          (pool.coin.mintAddress === pcMintAddress && pool.pc.mintAddress === coinMintAddress)) &&
+        ((pool.coin.mintAddress === coinMintAddress &&
+          pool.pc.mintAddress === pcMintAddress) ||
+          (pool.coin.mintAddress === pcMintAddress &&
+            pool.pc.mintAddress === coinMintAddress)) &&
         version.includes(pool.version) &&
         pool.official
       ) {
-        return !(ammIdOrMarket !== undefined && pool.ammId !== ammIdOrMarket && pool.serumMarket !== ammIdOrMarket)
+        return !(
+          ammIdOrMarket !== undefined &&
+          pool.ammId !== ammIdOrMarket &&
+          pool.serumMarket !== ammIdOrMarket
+        );
       }
     } else {
-      return !(ammIdOrMarket !== undefined && pool.ammId !== ammIdOrMarket && pool.serumMarket !== ammIdOrMarket)
+      return !(
+        ammIdOrMarket !== undefined &&
+        pool.ammId !== ammIdOrMarket &&
+        pool.serumMarket !== ammIdOrMarket
+      );
     }
-    return false
-  })
+    return false;
+  });
   if (pool.length > 0) {
-    return pool
+    return pool;
   } else {
     return LIQUIDITY_POOLS.filter((pool) => {
       if (coinMintAddress && pcMintAddress) {
         if (
-          ((pool.coin.mintAddress === coinMintAddress && pool.pc.mintAddress === pcMintAddress) ||
-            (pool.coin.mintAddress === pcMintAddress && pool.pc.mintAddress === coinMintAddress)) &&
+          ((pool.coin.mintAddress === coinMintAddress &&
+            pool.pc.mintAddress === pcMintAddress) ||
+            (pool.coin.mintAddress === pcMintAddress &&
+              pool.pc.mintAddress === coinMintAddress)) &&
           version.includes(pool.version)
         ) {
-          return !(ammIdOrMarket !== undefined && pool.ammId !== ammIdOrMarket && pool.serumMarket !== ammIdOrMarket)
+          return !(
+            ammIdOrMarket !== undefined &&
+            pool.ammId !== ammIdOrMarket &&
+            pool.serumMarket !== ammIdOrMarket
+          );
         }
       } else {
-        return !(ammIdOrMarket !== undefined && pool.ammId !== ammIdOrMarket && pool.serumMarket !== ammIdOrMarket)
+        return !(
+          ammIdOrMarket !== undefined &&
+          pool.ammId !== ammIdOrMarket &&
+          pool.serumMarket !== ammIdOrMarket
+        );
       }
-      return false
-    })
+      return false;
+    });
   }
 }
 
-export function getPoolByLpMintAddress(lpMintAddress: string): LiquidityPoolInfo | undefined {
-  const pool = LIQUIDITY_POOLS.find((pool) => pool.lp.mintAddress === lpMintAddress)
+export function getPoolByLpMintAddress(
+  lpMintAddress: string
+): LiquidityPoolInfo | undefined {
+  const pool = LIQUIDITY_POOLS.find(
+    (pool) => pool.lp.mintAddress === lpMintAddress
+  );
 
   if (pool) {
-    return cloneDeep(pool)
+    return cloneDeep(pool);
   }
 
-  return pool
+  return pool;
 }
 
 export function getAddressForWhat(address: string) {
@@ -189,31 +242,39 @@ export function getAddressForWhat(address: string) {
     for (const [key, value] of Object.entries(pool)) {
       if (key === 'lp') {
         if (value.mintAddress === address) {
-          return { key: 'lpMintAddress', lpMintAddress: pool.lp.mintAddress, version: pool.version }
+          return {
+            key: 'lpMintAddress',
+            lpMintAddress: pool.lp.mintAddress,
+            version: pool.version,
+          };
         }
       } else if (value === address) {
-        return { key, lpMintAddress: pool.lp.mintAddress, version: pool.version }
+        return {
+          key,
+          lpMintAddress: pool.lp.mintAddress,
+          version: pool.version,
+        };
       }
     }
   }
 
-  return {}
+  return {};
 }
 
 export function isOfficalMarket(marketAddress: string) {
   for (const market of SERUM_MARKETS) {
     if (market.address === marketAddress && !market.deprecated) {
-      return true
+      return true;
     }
   }
 
   for (const pool of LIQUIDITY_POOLS) {
     if (pool.serumMarket === marketAddress && pool.official === true) {
-      return true
+      return true;
     }
   }
 
-  return false
+  return false;
 }
 
 export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
@@ -240,7 +301,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '56KzKfd9LvsY4QuMZcGxcGCd78ZBFQ7JcyMFwgqpXH12',
     serumPcVaultAccount: 'GLntTfM7RHeg5RuAuXcudT4NV7d4BGPrEFq7mmMxn29E',
     serumVaultSigner: '6FYUBnwRVxxYCv1kpad4FaFLJAzLYuevFWmpVp7hViTn',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-SOL',
@@ -265,7 +326,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '6dDDqzNsLx8u2Prk384Rs1jUxFPFQsKHne5oQxnf4kog',
     serumPcVaultAccount: 'AzxRBcig9mGTfdbUgEdKq48eiNZ2M4ynwQQH4Pvxbcy2',
     serumVaultSigner: 'FhTczYTxkXMyofPMDQFJGHxjcnPrjrEGQMexob4BVwXD',
-    official: true
+    official: true,
   },
   {
     name: 'LINK-WUSDT',
@@ -290,7 +351,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '8ZP84HpFb5k4paAgDGgXaMtne537LDFaxEWP89WKBPD1',
     serumPcVaultAccount: 'E3X7J1vyogGKZSySEo3WTS9GzipyTGVd5KKiXeFy1YHu',
     serumVaultSigner: '7bwfaV98FDNtWvgPMo7wY3nE7cE8tKfXkFAVzCxtkw6w',
-    official: true
+    official: true,
   },
   {
     name: 'ETH-WUSDT',
@@ -315,7 +376,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'Gwna45N1JGLmUMGhFVP1ELz8szVSajp12RgPqCbk46n7',
     serumPcVaultAccount: '8uqjWjNQiZvoieaGSoCRkGZExrqMpaYJL5huknCEHBcP',
     serumVaultSigner: '4fgnxw343cfYgcNgWvan8H6j6pNBskBmGX4XMbhxtFbi',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-USDC',
@@ -340,7 +401,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'BuMsEd7Ub6MtCCh1eT8pvL6zcBPbiifa1idVWa1BeE2R',
     serumPcVaultAccount: 'G7i7ZKx7rfMXGreLYzvR3ZZERgaGK7646nAgi8yjE8iN',
     serumVaultSigner: 'Aj6H2siiKsnAdAS5YVwuJPdXrHaLodsSyKs7ZiEtEZQN',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-SRM',
@@ -365,7 +426,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '6wXCSGvFvWLVoiRaXJheHoXec4LiJhiCWnxmQbYc9kv5',
     serumPcVaultAccount: 'G8KH5rE5EqeTpnLjTTNgKhVp47yRHCN28wH27vYFkWCR',
     serumVaultSigner: 'EXZnYg9QCzujDwm621N286d4KLAZiMwpUv64GdECcxbm',
-    official: true
+    official: true,
   },
   // v3
   {
@@ -391,7 +452,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '6hCHQufQsxsHDkHYNmw79WvfsAGXvomdZnkzWN7MYz8f',
     serumPcVaultAccount: '7qM644QyBzMvqLLiEYhJksyPzwUpuQj44EodLb1va8aG',
     serumVaultSigner: '2hzqYES4AcwVkuMdNsNNqi1jqjfKSyL2BNus4kimVXNk',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-USDC',
@@ -416,7 +477,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'GGcdamvNDYFhAXr93DWyJ8QmwawUHLCyRqWL3KngtLRa',
     serumPcVaultAccount: '22jHt5WmosAykp3LPGSAKgY45p7VGh4DFWSwp21SWBVe',
     serumVaultSigner: 'FmhXe9uG6zun49p222xt3nG1rBAkWvzVz7dxERQ6ouGw',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-SRM',
@@ -441,7 +502,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5QDTh4Bpz4wruWMfayMSjUxRgDvMzvS2ifkarhYtjS1B',
     serumPcVaultAccount: '76CofnHCvo5wEKtxNWfLa2jLDz4quwwSHFMne6BWWqx',
     serumVaultSigner: 'AorjCaSV1L6NGcaFZXEyUrmbSqY3GdB3YXbQnrh85v6F',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-SOL',
@@ -466,7 +527,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '6U6U59zmFWrPSzm9sLX7kVkaK78Kz7XJYkrhP1DjF3uF',
     serumPcVaultAccount: '4YEx21yeUAZxUL9Fs7YU9Gm3u45GWoPFs8vcJiHga2eQ',
     serumVaultSigner: '7SdieGqwPJo5rMmSQM9JmntSEMoimM4dQn7NkGbNFcrd',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-ETH',
@@ -491,7 +552,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'EVVtYo4AeCbmn2dYS1UnhtfjpzCXCcN26G1HmuHwMo7w',
     serumPcVaultAccount: '6ZT6KwvjLnJLpFdVfiRD9ifVUo4gv4MUie7VvPTuk69v',
     serumVaultSigner: 'HXbRDLcX2FyqWJY95apnsTgBoRHyp7SWYXcMYod6EBrQ',
-    official: true
+    official: true,
   },
   // v4
   {
@@ -521,7 +582,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'A2SMhqA1kMTudVeAeWdzCaYYeG6Dts19iEZd4ZQQAcUm',
     serumPcVaultAccount: 'GhpccNwfein8qP6uhWnP4vuRva1iLivuQQHUTM7tW58r',
     serumVaultSigner: 'F7VdEoWQGmdFK35SD21wAbDWtnkVpcrxM3DPVnmG8Q3i',
-    official: true
+    official: true,
   },
   {
     name: 'OXY-RAY',
@@ -550,7 +611,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'FcDWM8eKUEny2wxopDMrZqgmPr3Tmoen9Dckh3MoVX9N',
     serumPcVaultAccount: '9ya4Hv4XdzntjiLwxpgqnX8eP4MtFf8YWEssF6C5Pqhq',
     serumVaultSigner: 'Bf9MhS6hwAGSWVJ4uLWKSU6fqPAEroRsHX6ithEjGXiG',
-    official: true
+    official: true,
   },
   {
     name: 'MAPS-RAY',
@@ -579,7 +640,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2zriJ5sVApLD9TC9PxbXK41AkVCQBaRreeXtGx7AGE41',
     serumPcVaultAccount: '2qAKnjzokKR4sL6Xtp1nZYKXTmsraXW9CL3HuBZx3qpA',
     serumVaultSigner: 'CH76NgZMpUJ8QQqVNpjyCSpQmZBNZLXW6a5vDHj3aUUC',
-    official: true
+    official: true,
   },
   {
     name: 'KIN-RAY',
@@ -608,7 +669,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2sCJ5YZtwEbpXiw7HSXVx8Qot8hwyCpXNEkswZCssi2J',
     serumPcVaultAccount: 'H6B59E77WZt4JLfaXdZQBKdATRcWaKy5N6Ki1ZRo1Mcv',
     serumVaultSigner: '5V7FCcvmGtqkMJXHiTSeo61MS5LSMUFK1Esr5kn46cEv',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-USDT',
@@ -637,7 +698,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2kVNVEgHicvfwiyhT2T51YiQGMPFWLMSp8qXc1hHzkpU',
     serumPcVaultAccount: '5AXZV7XfR7Ctr6yjQ9m9dbgycKeUXWnWqHwBTZT6mqC7',
     serumVaultSigner: 'HzWpBN6ucpsA9wcfmhLAFYqEUmHjE9n2cGHwunG5avpL',
-    official: true
+    official: true,
   },
   {
     name: 'SOL-USDC',
@@ -666,7 +727,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '36c6YqAwyGKQG66XEp2dJc5JqjaBNv7sVghEtJv4c7u6',
     serumPcVaultAccount: '8CFo8bL8mZQK8abbFyypFMwEDd8tVJjHTTojMLgQTUSZ',
     serumVaultSigner: 'F8Vyqk3unwxkXukZFQeYyGmFfTG3CAX4v24iyrjEYBJV',
-    official: true
+    official: true,
   },
   {
     name: 'YFI-USDC',
@@ -695,7 +756,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2N59Aig7wqhfffAUjMit7T9tk4FmSRzmByMD7mncTesq',
     serumPcVaultAccount: 'FcDTYePeh2KJts4nroCghgceiJmSBRgq2Xd3PfpernZm',
     serumVaultSigner: 'HDdQQNNf9EoCGWhWUgkQHRJVbG3huDXs2z6Fcow3grCr',
-    official: true
+    official: true,
   },
   {
     name: 'SRM-USDC',
@@ -724,7 +785,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'Ecfy8et9Mft9Dkavnuh4mzHMa2KWYUbBTA5oDZNoWu84',
     serumPcVaultAccount: 'hUgoKy5wjeFbZrXDW4ecr42T4F5Z1Tos31g68s5EHbP',
     serumVaultSigner: 'GVV4ZT9pccwy9d17STafFDuiSqFbXuRTdvKQ1zJX6ttX',
-    official: true
+    official: true,
   },
   {
     name: 'FTT-USDC',
@@ -753,7 +814,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '4LXjM6rptNvhBZTcWk4AL49oF4oA8AH7D4CV6z7tmpX3',
     serumPcVaultAccount: '2ycZAqQ3YNPfBZnKTbz2FqPiV7fmTQpzF95vjMUekP5z',
     serumVaultSigner: 'B5b9ddFHrjndUieLAKkyzB1xmq8sNqGGZPmbyYWPzCyu',
-    official: true
+    official: true,
   },
   {
     name: 'BTC-USDC',
@@ -782,7 +843,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'GZ1YSupuUq9kB28kX9t1j9qCpN67AMMwn4Q72BzeSpfR',
     serumPcVaultAccount: '7sP9fug8rqZFLbXoEj8DETF81KasaRA1fr6jQb6ScKc5',
     serumVaultSigner: 'GBWgHXLf1fX4J1p5fAkQoEbnjpgjxUtr4mrVgtj9wW8a',
-    official: true
+    official: true,
   },
   {
     name: 'SUSHI-USDC',
@@ -811,7 +872,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'BJfPQ2iKTJknyWo2wtCVEpRGWVt8sgpvmSQVNwLioQrk',
     serumPcVaultAccount: '2UN8qfXzoUDAxZMX1KqKut93frkt5hFREL8xcw6Hgtsg',
     serumVaultSigner: 'uWhVkK44yR6V5XywVom4oWzDQACSPYHhNjkwXprtUij',
-    official: true
+    official: true,
   },
   {
     name: 'TOMO-USDC',
@@ -840,7 +901,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '9tQtmWT3LCbVEoHFK5WK93wmDXv4us5s7NRYhficg9ih',
     serumPcVaultAccount: 'HRFqUnxuegNbAf2auxqRwECyDijkVGDw25BCJkf5ohM5',
     serumVaultSigner: '7i7rf8LANeECyi8TAwwLTyvfiVUo4x12iJtKeeA6eG53',
-    official: true
+    official: true,
   },
   {
     name: 'LINK-USDC',
@@ -869,7 +930,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '9BswoEnX3SN7YUnRujZa5ygiL8AXVHXE4xqp8USX4QSY',
     serumPcVaultAccount: '9TibPFxakkdogUYizRhj9Av92fxuY2HxS3nrmme81Sma',
     serumVaultSigner: '8zqs77myZg6wkPjbh9YdSKtNmfPh4FJTzeo9R39mbjCm',
-    official: true
+    official: true,
   },
   {
     name: 'ETH-USDC',
@@ -898,7 +959,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '7Nw66LmJB6YzHsgEGQ8oDSSsJ4YzUkEVAvysQuQw7tC4',
     serumPcVaultAccount: 'EsDTx47jjFACkBhy48Go2W7AQPk4UxtT4765f3tpK21a',
     serumVaultSigner: 'C5v68qSzDdGeRcs556YoEMJNsp8JiYEiEhw2hVUR8Z8y',
-    official: true
+    official: true,
   },
   {
     name: 'xCOPE-USDC',
@@ -927,7 +988,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '6LtcYXZVb7zfQG33F5dCDKZ29hyQaUh6BBhWjdHp8moy',
     serumPcVaultAccount: 'FCqm5xfy8ZvMxifVFfSz9Gxv1CTRABVMyLXuJrWvzAq7',
     serumVaultSigner: 'XoGZnpfyqj539wneBe8xUQyD282mwy5AMUaChz12JCH',
-    official: true
+    official: true,
   },
   {
     name: 'SOL-USDT',
@@ -956,7 +1017,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '29cTsXahEoEBwbHwVc59jToybFpagbBMV6Lh45pWEmiK',
     serumPcVaultAccount: 'EJwyNJJPbHH4pboWQf1NxegoypuY48umbfkhyfPew4E',
     serumVaultSigner: 'CzZAjoEqA6sjqtaiZiPqDkmxG6UuZWxwRWCenbBMc8Xz',
-    official: true
+    official: true,
   },
   {
     name: 'YFI-USDT',
@@ -985,7 +1046,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5KgKdCWVyWi9YJ6GipzozhWxAvnbQPpUtaxuMXXEn3Zs',
     serumPcVaultAccount: '29CnTKiFKwGPFfLBXDXGRX6ywGz3ToZfqZuLkoa33dbE',
     serumVaultSigner: '6LRcCMsRoGsye95Ck5oSyNqHJW8kk2iXt9z9YQyi9JkV',
-    official: true
+    official: true,
   },
   {
     name: 'SRM-USDT',
@@ -1014,7 +1075,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'GxPFMyeb7BUnu2mtGV2Zvorjwt8gxHqwL3r2kVDe6rZ8',
     serumPcVaultAccount: '149gvUQZeip4u8bGra5yyN11btUDahDVHrixzknfKFrL',
     serumVaultSigner: '4yWr7H2p8rt11QnXb2yxQF3zxSdcToReu5qSndWFEJw',
-    official: true
+    official: true,
   },
   {
     name: 'FTT-USDT',
@@ -1043,7 +1104,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'H1VJqo3piiadyVAUQW6yfZq4an8pgDFvAdqHJkRXMDbq',
     serumPcVaultAccount: '9SQ4Sjsszt59X3aLwRrTqa5SLxonEdXk5jF7KUfAxc8Z',
     serumVaultSigner: 'CgV9LcnAukrgDZmqhUwcNQ31z4KEjZEz4DHUSE4bRaVg',
-    official: true
+    official: true,
   },
   {
     name: 'BTC-USDT',
@@ -1072,7 +1133,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'DSf7hGudcxhhegMpZA1UtSiW4RqKgyEex9mqQECWwRgZ',
     serumPcVaultAccount: 'BD8QnhY2T96h6KwyJoCT9abMcPBkiaFuBNK9h6FUNX2M',
     serumVaultSigner: 'EPzuCsSzHwhYWn2j69HQPKWuWz6wuv4ANZiVigLGMBoD',
-    official: true
+    official: true,
   },
   {
     name: 'SUSHI-USDT',
@@ -1101,7 +1162,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5LmHe3x8VwGzWZ6rooARZJNMo6AaN1P73478AuhBUjUr',
     serumPcVaultAccount: 'iLCNUheHbq3bE1868XwWXs8enoTvjFnwpnmLFmBQGi3',
     serumVaultSigner: '9GN4139oezNfddWhcAc3c8Ke5aU4cwzcxL8cLkqE37Yy',
-    official: true
+    official: true,
   },
   {
     name: 'TOMO-USDT',
@@ -1130,7 +1191,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'P6qAvA6s7DHzzH4i74CUFAzx5bM4Yj3xk5TKmF7eWdb',
     serumPcVaultAccount: '8zFodcf4pKcRBq7Zhdg4tQeB76op7kSjPC2haPjPkDEm',
     serumVaultSigner: 'ECTnLdZEaxUiCwyjKcts3CoMfT4kj3CNfVCd9B18hRim',
-    official: true
+    official: true,
   },
   {
     name: 'LINK-USDT',
@@ -1159,7 +1220,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'EmS34LncbTGs4yU4GM9bESRYMCFL3JBW6mnAeKB4UtEb',
     serumPcVaultAccount: 'AseZZ8ZRqyvkZMMGAAG8dAqM9XFf2xGX2tWWbko7a4hC',
     serumVaultSigner: 'FezSC2d6sXEcJ9ah8nYxHC18nh4FZzc4u7ZTtRSrk6Nd',
-    official: true
+    official: true,
   },
   {
     name: 'ETH-USDT',
@@ -1188,7 +1249,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2CZ9JbDYPux5obFXb9sefwKyG6cyteNBSzbstYQ3iZxE',
     serumPcVaultAccount: 'D2f4NG1NC1yeBM2SgRe5YUF91w3M4naumGQMWjGtxiiE',
     serumVaultSigner: 'CVVGPFejAj3A75qPy2116iJFma7zGEuL8DgnxhwUaFBF',
-    official: true
+    official: true,
   },
   {
     name: 'YFI-SRM',
@@ -1217,7 +1278,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'GzZCBp3Z3fYHZW9b4WusfQhp7p4rZXeSNahCpn8HBD9',
     serumPcVaultAccount: 'ANK9Lpi4pUe9SxPvcKvd82jkG6AoKvvgo5kN8BCXukfA',
     serumVaultSigner: '9VAdxQgKNLkHgtQ4fkDetwwTKZG8xVaKeUFQwBVG7c7a',
-    official: true
+    official: true,
   },
   {
     name: 'FTT-SRM',
@@ -1246,7 +1307,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '8qTUSDRxJ65sGKEUu746xJdCquoP38AqKsQo6ZruSSBk',
     serumPcVaultAccount: 'ALe3hiZR35cCjcrzbJi1vKEhNftdVQjwkt4S8rbPZogq',
     serumVaultSigner: 'CAAeuJAgnP368num8bCv6VMWCqMZ4pTANCcGTAMAJtm2',
-    official: true
+    official: true,
   },
   {
     name: 'BTC-SRM',
@@ -1275,7 +1336,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '3ABvHYBeWrpgP82jvHh5TVwid1AjDj9rei7zfY8xh2wz',
     serumPcVaultAccount: 'CSpdPdzzbaNWgwhPRTZ4TNoYS6Vco2w1s7jvqUsYQBzf',
     serumVaultSigner: '9o8LaPeTMJBoYyoUVNm6ju6c5rwfphhYReQsp1vTTyRg',
-    official: true
+    official: true,
   },
   {
     name: 'SUSHI-SRM',
@@ -1304,7 +1365,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'BSoAoNFKzK65TjcUpY5JZHBvZVMiYnkdo9upy3mLSTpq',
     serumPcVaultAccount: '8U9azb65o1dJuMs7je987i7hKxJfPZnbNRNeH5beJfo7',
     serumVaultSigner: 'HZtDGZsz2fdXF75H8tyB8skp5a4rvoawgxwXqHTGEdvU',
-    official: true
+    official: true,
   },
   {
     name: 'TOMO-SRM',
@@ -1333,7 +1394,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '8W65Bwb83MYKHf82phS9xPUDsR6RpZbAXnSELxsBb3HH',
     serumPcVaultAccount: '5rjDHBsjFv3Z3Dxr5RMj98vj6LA5DNEwZGDM8wyUF1Hy',
     serumVaultSigner: 'EJfMPPTvTKtgj7PUaM17bp2Gbye9CdKjZ5yqonPyY4rB',
-    official: true
+    official: true,
   },
   {
     name: 'LINK-SRM',
@@ -1362,7 +1423,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '8J7iJ4uidHscVnNGsEgiEPJsUqrfteN7ifMscB9h4dAq',
     serumPcVaultAccount: 'Bw7SrqDqvAXHi2yphAniH3uBw9N7J6vVi7jMH9B2KYWM',
     serumVaultSigner: 'CvP4Jk6AYBV6Kch6w6FjwuMqHAugQqVrqCNp1eZmGihB',
-    official: true
+    official: true,
   },
   {
     name: 'ETH-SRM',
@@ -1391,7 +1452,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '58jqhCZ11r6ZvATqdGfDXPk7LmiR9HS3jQt7kuoBx5CH',
     serumPcVaultAccount: '9NLpT5aZtbbauvEVVFsHqigv2ekTEPK1kojoMMCw6Hhx',
     serumVaultSigner: 'EC5JsbaQVp8tM59TqkQBk4Yv7bzLQq3TrzpepjGr9Ecg',
-    official: true
+    official: true,
   },
   {
     name: 'SRM-SOL',
@@ -1420,7 +1481,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'EhAJTsW745jiWjViB7Q4xXcgKf6tMF7RcMX9cbTuXVBk',
     serumPcVaultAccount: 'HFSNnAxfhDt4DnmY9yVs2HNFnEMaDJ7RxMVNB9Y5Hgjr',
     serumVaultSigner: '6vBhv2L33KVJvAQeiaW3JEZLrJU7TtGaqcwPdrhytYWG',
-    official: true
+    official: true,
   },
   {
     name: 'STEP-USDC',
@@ -1449,7 +1510,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'CVNye3Xr9Jv26c8TVqZZHq4F43BhoWWfmrzyp1M9YA67',
     serumPcVaultAccount: 'AnGbReAhCDFkR83nB8mXTDX5dQJFB8Pwicu6pGMfCLjt',
     serumVaultSigner: 'FbwU5U1Doj2PSKRJi7pnCny4dFPPJURwALkFhHwdHaMW',
-    official: true
+    official: true,
   },
   {
     name: 'MEDIA-USDC',
@@ -1478,7 +1539,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'D8ToFvpVWmNnfJzjHuumRJ4eoJc39hsWWcLtFZQpzQTt',
     serumPcVaultAccount: '6RSpnBYaegSKisXaJxeP36mkdVPe9SP3p2kDERz8Ahhi',
     serumVaultSigner: 'Cz2m3hW2Vcb8oEFz12uoWcdq8mKb9D1N7RTyXpigoFXU',
-    official: true
+    official: true,
   },
   {
     name: 'ROPE-USDC',
@@ -1507,7 +1568,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'F8PdvS5QFhSqgVdUFo6ivXdXC4nDEiKGc4XU97ZhCKgH',
     serumPcVaultAccount: '61zxdnLpgnFgdk9Jom5f6d6cZ6cTbwnC6QqmJag1N9jB',
     serumVaultSigner: 'rCFXUwdmQvRK9jtnCip3SdDm1cLn8nB6HHgEHngzfjQ',
-    official: true
+    official: true,
   },
   {
     name: 'MER-USDC',
@@ -1536,7 +1597,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '4ctYuY4ZvCVRvF22QDw8LzUis9yrnupoLQNXxmZy1BGm',
     serumPcVaultAccount: 'DovDds7NEzFn493DJ2yKBRgqsYgDXg6z38pUGXe1AAWQ',
     serumVaultSigner: 'BUDJ4F1ZknbZiwHb6xHEsH6o1LuW394DE8wKT8CoAYNF',
-    official: true
+    official: true,
   },
   {
     name: 'COPE-USDC',
@@ -1565,7 +1626,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2ShBow4Bof4dkLjx8VTRjLXXvUydiBNF7bHzDaxPjpKq',
     serumPcVaultAccount: 'EFdqJhawpCReiK2DcrbbUUWWc6cd8mqgZm5MSbQ3TR33',
     serumVaultSigner: 'A6q5h5Wx9iqeoVsvYWA7xofUcKx6XUPPab8BTVrW91Bs',
-    official: true
+    official: true,
   },
   {
     name: 'ALEPH-USDC',
@@ -1594,7 +1655,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'EBRqW7DaUGFBHRbfgRagpSf9jTSS3yp9MAi3RvabdBGz',
     serumPcVaultAccount: '9QTMfdkgPWqLriB9J7FcYvroUEqfw6zW2VCi1dAabdUt',
     serumVaultSigner: 'HKt6xFufxTBBs719WQPbro9t1DfDxffurxFhTPntMgoe',
-    official: true
+    official: true,
   },
   {
     name: 'TULIP-USDC',
@@ -1623,7 +1684,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '6qH3FNTSGKw34SEEj7GXbQ6kMQXHwuyGsAAeV5hLPhJc',
     serumPcVaultAccount: '6AdJbeH76BBSJ34DeQ6LLdauF6W8fZRrMKEfLt3YcMcT',
     serumVaultSigner: '5uJEd4wfVH84HyFEBf5chfJMTTPHBddXi1S7GmBE6x14',
-    official: true
+    official: true,
   },
   {
     name: 'WOO-USDC',
@@ -1652,7 +1713,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '54vv5QSZkmHpQzpvUmpS5ZreDwmbuXPdbGp9ybzgcsTM',
     serumPcVaultAccount: '7PL69dV89XXJg9V6wzzdu9p2ymhVwBWqp82sUzWvjnp2',
     serumVaultSigner: 'CTcvsPoWroF2e2iiZWe6ztBwNQHiDyAVCs8EbQ5Annig',
-    official: true
+    official: true,
   },
   {
     name: 'SNY-USDC',
@@ -1681,7 +1742,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'CddTJJj2tDWUk6Kteh3KSBJJh4HvkoWMXcQjZuXaaAzP',
     serumPcVaultAccount: 'BGr1LWgHKaekkmScogSU1SYSRUaJBBPFeBAEBvuwf7CE',
     serumVaultSigner: '3APrMUDUQ16iEsL4vTaovTf5fPXAEwtXmWXvD9xQVPaB',
-    official: true
+    official: true,
   },
   {
     name: 'BOP-RAY',
@@ -1710,7 +1771,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'CTv9hnW3nbANzJ2yyzmyMCoUxv5s95ndxcBbLzV39z3w',
     serumPcVaultAccount: 'GXFttVfXbH7rU6GJnBVs3LyyuiPU8a6sW2tv5K5ZGEAQ',
     serumVaultSigner: '5JEwQ7hM1qFCBwJkZ2JyjkoJ99ojJXRx2bFjLcFobDvC',
-    official: true
+    official: true,
   },
   {
     name: 'SLRS-USDC',
@@ -1739,7 +1800,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '6B527pfkvbvbLRDgjASLGygdaQ1fFLwmmqyFCgTacsKH',
     serumPcVaultAccount: 'Bsa11vdveUhSouxAXSYCE4yXToUP58N9EEeM1P8qbtp3',
     serumVaultSigner: 'CjiJdQ9a7dnjTKfVPZ2fwn31NtgJA1kRU55pwDE8HHrM',
-    official: true
+    official: true,
   },
   {
     name: 'SAMO-RAY',
@@ -1768,7 +1829,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'BpHuL7HNTJDDGiw4ELpnYQdhTNNgZ53ennhtkQjGawGS',
     serumPcVaultAccount: 'BzsbZPiwLMJHhSFNVdtGqi9MWKhYijgq34Z6YjYkQJUr',
     serumVaultSigner: 'F2f14Nw7kqBeGwgFymm7sEPcZrKWWN56hvN5yx2vc6sE',
-    official: true
+    official: true,
   },
   {
     name: 'renBTC-USDC',
@@ -1797,7 +1858,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'EqnX836tGG4PYSBPgzzQecbTP47AZQRVfcy4RqQW8F3D',
     serumPcVaultAccount: '7yiA6p6BXxZwcm38St3vTzyGNEmZjw8x7Ko2nyTfvVx3',
     serumVaultSigner: '9aZNHmGZrNnB3fKmBj5B9oD7moA1nFviZqNUSkx2tctg',
-    official: true
+    official: true,
   },
   {
     name: 'renDOGE-USDC',
@@ -1826,7 +1887,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5UbUbaVLXnZq1eibQSUxdsk6Lp38bgdTjbjQPssXGgwW',
     serumPcVaultAccount: '4KMsmK7gPdKMAKmEcHqtBB5EhNnWVRd71v3a5uBwhQ2T',
     serumVaultSigner: 'Gwe1pE3rV4LLviNZqrEFPAeLchwvHrftBUQsnJtEkpSa',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-USDC',
@@ -1855,7 +1916,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'GGcdamvNDYFhAXr93DWyJ8QmwawUHLCyRqWL3KngtLRa',
     serumPcVaultAccount: '22jHt5WmosAykp3LPGSAKgY45p7VGh4DFWSwp21SWBVe',
     serumVaultSigner: 'FmhXe9uG6zun49p222xt3nG1rBAkWvzVz7dxERQ6ouGw',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-SRM',
@@ -1884,7 +1945,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5QDTh4Bpz4wruWMfayMSjUxRgDvMzvS2ifkarhYtjS1B',
     serumPcVaultAccount: '76CofnHCvo5wEKtxNWfLa2jLDz4quwwSHFMne6BWWqx',
     serumVaultSigner: 'AorjCaSV1L6NGcaFZXEyUrmbSqY3GdB3YXbQnrh85v6F',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-ETH',
@@ -1913,7 +1974,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'EVVtYo4AeCbmn2dYS1UnhtfjpzCXCcN26G1HmuHwMo7w',
     serumPcVaultAccount: '6ZT6KwvjLnJLpFdVfiRD9ifVUo4gv4MUie7VvPTuk69v',
     serumVaultSigner: 'HXbRDLcX2FyqWJY95apnsTgBoRHyp7SWYXcMYod6EBrQ',
-    official: true
+    official: true,
   },
   {
     name: 'RAY-SOL',
@@ -1942,7 +2003,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '6U6U59zmFWrPSzm9sLX7kVkaK78Kz7XJYkrhP1DjF3uF',
     serumPcVaultAccount: '4YEx21yeUAZxUL9Fs7YU9Gm3u45GWoPFs8vcJiHga2eQ',
     serumVaultSigner: '7SdieGqwPJo5rMmSQM9JmntSEMoimM4dQn7NkGbNFcrd',
-    official: true
+    official: true,
   },
   {
     name: 'DXL-USDC',
@@ -1971,7 +2032,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '9ZaKDVrjCaPRZTqnuteGc8iBmJhdaGVf8JV2HBT67wbX',
     serumPcVaultAccount: '5Y65XyuJemmRU7G1AQQTvWKSge8WDVYhb2knd7htJHoh',
     serumVaultSigner: 'y6FHXgMwWvvpoiox6Ut6mUAUHgbJMXNJnXQm7MQkEdE',
-    official: true
+    official: true,
   },
   {
     name: 'LIKE-USDC',
@@ -2000,7 +2061,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'Dd9F1fugQj2xtduyNvFS5TtxP9vKnuxVMcrPsHFnLyqp',
     serumPcVaultAccount: 'BnXXu8kLUXrwg3MpcVRVPLZw9bpX2mLd95qtCMnSUtu7',
     serumVaultSigner: 'MKCHeoqNGWU8TJBkdF1M76nMUteJCwuBRUJfCtR3iV7',
-    official: true
+    official: true,
   },
   {
     name: 'mSOL-USDC',
@@ -2029,7 +2090,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2y3BtF5oRBpLwdoaGjLkfmT3FY3YbZCKPbA9zvvx8Pz7',
     serumPcVaultAccount: '6w5hF2hceQRZbaxjPJutiWSPAFWDkp3YbY2Aq3RpCSKe',
     serumVaultSigner: '9dEVMESKXcMQNndoPc5ji9iTeDJ9GfToboy8prkZeT96',
-    official: true
+    official: true,
   },
   {
     name: 'mSOL-SOL',
@@ -2058,7 +2119,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2qmHPJn3URkrboLiJkQ5tBB4bmYWdb6MyhQzZ6ms7wf9',
     serumPcVaultAccount: 'A6eEM36Vpyti2PoHK8h8Dqk5zu7YTaSRTQb7XXL8tcrV',
     serumVaultSigner: 'EHMK3DdPiPBd9aBjeRU4aZjD7z568rmwHCSAAxRooPq6',
-    official: true
+    official: true,
   },
   {
     name: 'MER-PAI',
@@ -2087,7 +2148,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2Duueu4HUnv6e4qUqdM4DKECM9X3XggBsXp5eLYuSLXe',
     serumPcVaultAccount: '3GEqHH6VAnyqrgG9jRB4Qy9PMTYJmSBvg7u3LtBWHEWD',
     serumVaultSigner: '7cBPvLMQvf1X5rzLMNKrx7TY5M186rTR49yJNHNSp81s',
-    official: true
+    official: true,
   },
   {
     name: 'PORT-USDC',
@@ -2116,7 +2177,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '8rNKJFsd9yuGx7xTTm9sb23JLJuWJ29zTSTznGFpUBZB',
     serumPcVaultAccount: '5Vs1UWLxZHHRW6yRYEEK3vpzE5HbQ8BFm27PnAaDjqgb',
     serumVaultSigner: '63ZaXnSj7SxWLFEcjmK79fyGokJxhR3UEXomN7q7Po25',
-    official: true
+    official: true,
   },
   {
     name: 'MNGO-USDC',
@@ -2145,7 +2206,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '7Ex7id4G37HynuiCAv5hTYM4BnPB9y4NU85QcaNWZy3G',
     serumPcVaultAccount: '9UB1NhGeDuV1apHdtK5LeAEjP7kZFH8vVYGdh2yGFRi8',
     serumVaultSigner: 'BFkxdUwW17eANhfs1xNmBqEcegb4EStQxVb5VaMS2dq6',
-    official: true
+    official: true,
   },
   {
     name: 'ATLAS-USDC',
@@ -2174,7 +2235,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '22a8dDQwHmmnW4M4WuSXHC9NdQAufZ2V8at3EtPzBqFj',
     serumPcVaultAccount: '5Wu76Qx7EoiR79zVVV49cZDYZ5csZaKFiHKYtCjF9FNU',
     serumVaultSigner: 'FiyZW6n5VE64Yubn2PUFAxbmB2FZXhYce74LzJUhqSZg',
-    official: true
+    official: true,
   },
   {
     name: 'POLIS-USDC',
@@ -2203,7 +2264,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5XQ7xYE3ujVA21HGbvFGVG4pLgqVHSfR9anz2EfmZ3nA',
     serumPcVaultAccount: 'ArUDWPwzGQFfa7t7nSdkp1Dj6tYA3icXEq8K7goz9WoG',
     serumVaultSigner: 'FHX9fPAUVA1MxPme28f4eeVH81QVRHDWofa2V6FUJaiR',
-    official: true
+    official: true,
   },
   {
     name: 'ATLAS-RAY',
@@ -2232,7 +2293,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '9tBagdm862GCoxZNFvXv7HFjLUFmypxPYxfiT3j9S3h3',
     serumPcVaultAccount: '4oc1kGhKByyxRnh3oXupjTn5P6JwWPnoxwvLxjZzi2vE',
     serumVaultSigner: 'EK2TjcyoXzUweNJnJupQf6sZK8756mvBJeGBvi6y18Cq',
-    official: true
+    official: true,
   },
   {
     name: 'POLIS-RAY',
@@ -2261,7 +2322,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'pLD9GMk4LACBXDJAWJSgbT1batbHgunBVyy8BaVBazG',
     serumPcVaultAccount: 'Ah3JVyTAGLbH63XPWDDnJUwV1xYwHhFX2J81CDHomkLk',
     serumVaultSigner: '5RqVkFy8hUbYDR81ucZhF6rAwpgYJngLJLSynMTeC4vM',
-    official: true
+    official: true,
   },
   {
     name: 'ALEPH-RAY',
@@ -2290,7 +2351,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '7dCAQbfwtDFtLwNgoB2WahCubPhFjZRGjfVYJajcF6qJ',
     serumPcVaultAccount: '2DsQ33R4GqqBkmxPdFyBy7WYAzyWYm6BNPqKtENAKXuY',
     serumVaultSigner: 'DDyP6zj3GTK3hTRyjPuaEL9yyqgfdstRMMKCkn939pkp',
-    official: true
+    official: true,
   },
   {
     name: 'TULIP-RAY',
@@ -2319,7 +2380,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'JD1MfYD2SXiY1j6p3H6DifpG6RAe8cAtmNNLdRAdB1aT',
     serumPcVaultAccount: 'UtkM2zbygo9tig18DQJDdRjHSKQiMf5uSuDTR2kf7ov',
     serumVaultSigner: '3yRCDVhumspJgYJnNhyJaXTjRn5jiMqdbQ13rTyHHQgQ',
-    official: true
+    official: true,
   },
   {
     name: 'SLRS-RAY',
@@ -2348,7 +2409,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'F71huJuAGZ8Q9xVxQueLQ8vDQD6Nq8MkJJsyM2S937sy',
     serumPcVaultAccount: 'AbmAd3LgTowBANXnCNPLctxL7PReirJv5VcizvQ3mfah',
     serumVaultSigner: 'E91Pu1z4q4Nr5mGSVcwyDzzbQC3LdDBzmFyLoXfXfg17',
-    official: true
+    official: true,
   },
   {
     name: 'MER-RAY',
@@ -2377,7 +2438,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'EaFu94rusrGHjJWhuuUbKWW2AJizDGbpWJXJa4cxmLCP',
     serumPcVaultAccount: 'ApZdrWpBu2uLkYAeVLneWnDhVrbR6TjhjbBR78kpg5r2',
     serumVaultSigner: 'FCf82FB2TFAfH4YEDkBJtEeSkTK1EQFc27d1iSnvXMjk',
-    official: true
+    official: true,
   },
   {
     name: 'MEDIA-RAY',
@@ -2406,7 +2467,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'Ea7ECm7a3ECLnvJJMpZS9QrWbYnb8LkqVvWCXtmFVzWX',
     serumPcVaultAccount: '54a18egZToocQ2yeCstCrtYZLAj3z82qfLG4Ed1quThb',
     serumVaultSigner: 'F1XJJ2fkPiiYg1hWnDD6phMfDd8Sr8XwM6GKFeAZpTmr',
-    official: true
+    official: true,
   },
   {
     name: 'SNY-RAY',
@@ -2435,7 +2496,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'F1LcTLXQhFf9ymAHnxFNovSdZttZiVjRBoqQxyPAEipj',
     serumPcVaultAccount: '64UEnruJCyjKUz8vdgZh3FwWwd53oSMY9Knd5dt5oVuK',
     serumVaultSigner: '3enyrrweGCtkVDvaiAkSo2d2tF7B899tWHGSDfEGKtNs',
-    official: true
+    official: true,
   },
   {
     name: 'LIKE-RAY',
@@ -2464,7 +2525,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'EENxPU4YaXqTLBgd5jHBHigpH74MZNq9WxcLaKVsVSvq',
     serumPcVaultAccount: '5c9DtqqCvj5du96cgUCSt2GZp8sreE7uV1Defmb615na',
     serumVaultSigner: 'GWnLv7RwJhceF3YNqawMyEJqg6WgZc6XtT7Bi6prjkyC',
-    official: true
+    official: true,
   },
   {
     name: 'COPE-RAY',
@@ -2493,7 +2554,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '9mQ22KCPTyFkJ4dp16Fhpd1pFrVmonS6SMa9L8nM6nLn',
     serumPcVaultAccount: 'BKGiYU9So4XMYYuYiV2d68kcR2wwLogKbi3rmg8ci4xt',
     serumVaultSigner: 'k5mhBL7yqEtAQs1WtUGdMT9eLLZkjambTd1Y4MyGouf',
-    official: true
+    official: true,
   },
   {
     name: 'ETH-SOL',
@@ -2522,7 +2583,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'HMPki4uRhncFhMHpLAacHCDAU4QazjgFTsB8SQgh6bMY',
     serumPcVaultAccount: 'BeWaZ85mTxmrYfS3J9E1jQQ5tKgDRA6qmTpksKnGeNps',
     serumVaultSigner: 'GPNCigFBsjNhXu3cbmU1uxfbGVuxCA8bJN4bobwDjuTm',
-    official: true
+    official: true,
   },
   {
     name: 'stSOL-USDC',
@@ -2550,7 +2611,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '4gqecEySZu6SEgCNhBJm7cEn2TFqCMsMNoiyski5vMTD',
     serumPcVaultAccount: '6FketuhRzyTpevhgjz4fFgd5GL9fHeBeRsq9uJvu8h9m',
     serumVaultSigner: 'x1vRSsrhXkSn7xzJfu9mYP2i19SPqG1gjyj3vUWhim1',
-    official: true
+    official: true,
   },
   {
     name: 'GRAPE-USDC',
@@ -2578,7 +2639,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '8FMjC6yopBVYTXcYSGdFgoh6AFpwTdkJAGXxBeoV8xSq',
     serumPcVaultAccount: '5vgxuCqMn7DUt6Le6EGhdMzZjPQrtD1x4TD9zGw3mPte',
     serumVaultSigner: 'FCZkJzztVTx6qKVec25jA3m4XjeGBH1iukGdDqDBHPvG',
-    official: true
+    official: true,
   },
   {
     name: 'LARIX-USDC',
@@ -2605,7 +2666,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'JDEsHM4igV84vbH3DhZKvxSTHtswcNQqVHH9RDq1ySzB',
     serumPcVaultAccount: 'GKU4WhnfYXKGeYxZ3bDuBDNrBGupAnnh1Qhn91eyTcu7',
     serumVaultSigner: '4fGoqGi6jR78dU9TRdL5LvBUPjwnoUCBwxNjfFxcLaCw',
-    official: true
+    official: true,
   },
   {
     name: 'RIN-USDC',
@@ -2632,7 +2693,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5JCpfGbNdFhXWxMFR4xefBfLEd2qxYgovEggS6wxtmQe',
     serumPcVaultAccount: 'FQfVJz7STBGMheiAAuZdF8ndyvbJhJZWJvpKhFKqSqYh',
     serumVaultSigner: 'DFoStusQdrMbHms9Sce3tiRwSHAnaPLEtXCaFAnrhSy3',
-    official: true
+    official: true,
   },
   {
     name: 'APEX-USDC',
@@ -2659,7 +2720,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'CEGcRVzSbX5hGpsKsPX8zhTMm8N4xJSTH1VFEcWXRUmE',
     serumPcVaultAccount: '7Q1TDhNbhpN9KN3vCRk7WhPi2EaETSCkXpsTdaDppvAx',
     serumVaultSigner: 'GprUwgGyqBiEC5e6ivxgpUf7uhpS17n7WRiU7HDV3VGk',
-    official: true
+    official: true,
   },
   {
     name: 'mSOL-RAY',
@@ -2686,7 +2747,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'GPksxJSxy5pEigdtSLBBZuRQEuGPJRT2ah3J1HwMeKm5',
     serumPcVaultAccount: 'TACxu78UJHz2Vzg2HwGa2w9mvLw2mY5mL7Q3ho9W6J9',
     serumVaultSigner: 'FD6U73ZW2YkD9R8cbDT6KSamVodYqWJBtS3ZcPeU7X29',
-    official: true
+    official: true,
   },
   {
     name: 'MNDE-mSOL',
@@ -2713,7 +2774,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'aj1igzDQNRg18h9yFGvNqMPBfCGGWLDvKDp2NdYh92C',
     serumPcVaultAccount: '3QjiyDAny7ZrwPohN8TecXL4jBwGWoSUe7hzTiX35Pza',
     serumVaultSigner: '6Ysd8CE6KwC7KQYpPD9Ax8B77z3bWRnHt1SVrBM8AYC9',
-    official: true
+    official: true,
   },
   {
     name: 'LARIX-RAY',
@@ -2740,7 +2801,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5uUh8pUvYzEjPtofPbappZBswKieWtLW7d32yuDNC6tw',
     serumPcVaultAccount: '6eRt1RkQokKk5gmVmJ85gY42xirTMXQ1QDLXiDmbXs4b',
     serumVaultSigner: '4pwBSrGHpVn1qXjzDC2Tm8nFG8mxR9y2qudFjAQ8cVQy',
-    official: true
+    official: true,
   },
   {
     name: 'LIQ-USDC',
@@ -2767,7 +2828,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'GuivK7Kd7aiJT9gTnhDskqUpbUD5Yur3f2NyygvwhA9B',
     serumPcVaultAccount: 'ZKoVkBhZ9DJvuCMLvuPvZnhFTCQFAoF1BmVZZ1SqgPg',
     serumVaultSigner: 'GfX8cR4p9BWr47RknXetRvmHdCnbd1qRhi59kyibq6V4',
-    official: true
+    official: true,
   },
   {
     name: 'WAG-USDC',
@@ -2794,7 +2855,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '6sF1TAJjfrNucAqaQFRrMD78z2RinTGeyo4KsXPbwiqh',
     serumPcVaultAccount: '5iXoDYXGnMxEwL65XTJHWdr6Z2UD5qq47ZijW24VSSSQ',
     serumVaultSigner: 'BuRLkxJffwznEsxXEqmXZJdLh4vQ1BRXc41sT6BtPV4X',
-    official: true
+    official: true,
   },
   {
     name: 'ETH-mSOL',
@@ -2821,7 +2882,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'DPdJZDKtTiaaqd52LPCvqyMPPNnJE3dSGAKVnZbsUSNm',
     serumPcVaultAccount: '5fpAmGMAqtkueG5w2doNDeBncFUvh4zgBsYoCwpGBkMA',
     serumVaultSigner: 'H6uYBVPb36jnUUxzGFWadNvuqMnCr12Sx6EbmebqwgfC',
-    official: true
+    official: true,
   },
   {
     name: 'mSOL-USDT',
@@ -2848,7 +2909,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'FgVVda2Wnp2PuDpuh23B341qZx2cnArqVNSgxsU877Y',
     serumPcVaultAccount: '2PtdrUGJd7aYoMKXpQ5d19r5Aa1z8dkRj6NNRCNGTE3D',
     serumVaultSigner: 'QMhH9Mnv1jg8tLNanAvKf3ymbuzh7sDENyjCgiyn3Kk',
-    official: true
+    official: true,
   },
   {
     name: 'BTC-mSOL',
@@ -2875,7 +2936,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'DxXBH5NCTENPh6zsfMstyHhoBtdaVnYSzHgaa6GyVbfY',
     serumPcVaultAccount: '9XqpiagW7bnAbMwpc85M2hfrcqxtvfgZucyrYPAPkcvq',
     serumVaultSigner: 'mZrDXx1TQizPd9CzToBx8FqqrPCPdePHy6ttgBdNPuB',
-    official: true
+    official: true,
   },
   {
     name: 'SLIM-SOL',
@@ -2902,7 +2963,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'NwNLSyB41djEmYzmqWVbia4p3kVZuqjFpdC7c72ZAZC',
     serumPcVaultAccount: '87FwRiq7Ct7Tvc2KUVPGvssbKwPAM7BLTzV9ixS3g6Y9',
     serumVaultSigner: 'Fv9vYZoH5t9bGnyLrV7ifGt74vz4qvtsAUyZbLXX7qoz',
-    official: true
+    official: true,
   },
   {
     name: 'AURY-USDC',
@@ -2929,7 +2990,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'HbYw9LSKVepB9mYwbTeDy6oAj5TPrw3GqAFtKWm99jNd',
     serumPcVaultAccount: '6DbF2jRhrNgeZnHGR6c1UfGmQxk4qtBueox56huK8Etr',
     serumVaultSigner: '639H2jxUJRbvNiCQnkypf4Nvz72bSdbexchvcCg2jHYR',
-    official: true
+    official: true,
   },
   {
     name: 'PRT-SOL',
@@ -2956,7 +3017,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '4Zm3aQqQHJFb7Q4oQotfxUFBcf9FVP6qvt2pkJA35Ymn',
     serumPcVaultAccount: 'B34rGhNUNxnSfxodkUoqYC3kGMdF4BjFHV2rQZAzQPMF',
     serumVaultSigner: '9ZGDGCN9BHiqEy44JAd1ExaAiRoh9HWou8nw44MbhnNX',
-    official: true
+    official: true,
   },
   {
     name: 'LIQ-RAY',
@@ -2983,7 +3044,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '3VB8kEgcpuFzSf6Nbe3Nm2BiUNGxmJpZGbYSoqnDruRp',
     serumPcVaultAccount: 'DYRShjB8necZU1Qx9FVPDLSjuu3zEkbHgd6BEkMZPS23',
     serumVaultSigner: 'CEhFiD6xAgRptnuyUJg3iAkN7Zi65ZNoyi9uBPt5V8Y',
-    official: true
+    official: true,
   },
   {
     name: 'SYP-SOL',
@@ -3010,7 +3071,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'GkM6SiD2GFKTuqJraMuWbPVYcvEvzPqjndsKq3GfYEX4',
     serumPcVaultAccount: 'FF6EXqFSZzUvyuj6uYRWxTFDAhd5jcz57PL69BAMPutd',
     serumVaultSigner: 'BmNvsW45ZLYrnSZpFHFL3xmTyWsJ1X6jof3XoCkEry6H',
-    official: true
+    official: true,
   },
   {
     name: 'SYP-RAY',
@@ -3037,7 +3098,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5reSWxhb7uugMzxQXPEfYY7zaveCmHro7juk3VzQJx9T',
     serumPcVaultAccount: '4S5XZnwyd7kB1LnY55rJmXjZHty3FGAxyqQaNHphqfzC',
     serumVaultSigner: 'BBaMkoum9hY53mCXAGqMcP2hMSzEyS7Nr12RLY395eCL',
-    official: true
+    official: true,
   },
   {
     name: 'SYP-USDC',
@@ -3064,7 +3125,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '8DGcP5Z8M878mguFLohaK9jFrrShDCREF3qa7JhMfgib',
     serumPcVaultAccount: 'CLS4WFje2PbV3MmV4v7CGxu3bNFqx2sYewq95rzGR8t8',
     serumVaultSigner: 'FBLtcfAXmm5PpJLLr95L5cjfgbpJiGHsWdBXDpC2TBQ2',
-    official: true
+    official: true,
   },
   {
     name: 'FAB-USDC',
@@ -3091,7 +3152,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '71E7dr2Rodeneu6wPn8oofCpLQJjfDHr6r76HGCDv491',
     serumPcVaultAccount: '8gU7HWyk3X41ebNkMH44JhEWq1nzRGdWwGgZaJfr4zGR',
     serumVaultSigner: 'GuLwNbHHLDyNtYF5qv16boMKvdek5AFK8v7PZ2hMgvdv',
-    official: true
+    official: true,
   },
   {
     name: 'WOOF-RAY',
@@ -3118,7 +3179,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'CJVUSSsd4AnqNK7pvDb3XWWx6v34NELyy8JdQoKxnSdW',
     serumPcVaultAccount: '4YFPXdvk2HYwAJMPFCw7EU2h6CUTeWzvsC5DnrrTGF3Z',
     serumVaultSigner: '78dHXV2JdqQyFTs1tprMH359be7WWMYsmsSAsFctBoZe',
-    official: true
+    official: true,
   },
   {
     name: 'WOOF-USDC',
@@ -3145,7 +3206,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2VcGBzs54DWCVtAQsw8fx1VVdrxEvX7bJz3AD4j8EBHX',
     serumPcVaultAccount: '3rfTMxRqmtoVvVsZXnvf2ifpFweeKSWxuFkYtyQnN9KG',
     serumVaultSigner: 'BUwcHs7HSHMexNjrEuSaP3TY5xdqBo87384VmWMV9BQF',
-    official: true
+    official: true,
   },
   {
     name: 'SLND-USDC',
@@ -3172,7 +3233,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5JDR5i3wqrLxoZfaytoW14hti9pxVEouRy5pUtyhisYD',
     serumPcVaultAccount: '6ktrwB3FevRNdNHXW7n6ufk2h1jwKnWFtjhHgNwYaxJb',
     serumVaultSigner: 'HP7nqJpWXBS91fRncBCawqidJhxqNwKbS84Ni3HBTiGG',
-    official: true
+    official: true,
   },
   {
     name: 'FRKT-SOL',
@@ -3199,7 +3260,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'EgZKQ4zMUiNNXFzTJ89eyL4gjfF2yCrH1seQHTnwihAc',
     serumPcVaultAccount: 'FCnpLA4Xzo4GKctHwMydTx81NRgbAxsZTreT9zHAEV8d',
     serumVaultSigner: '3x6rbV78zDotLTfat9tXpWgCzqKYBJKEzaDEWStcumud',
-    official: true
+    official: true,
   },
   {
     name: 'whETH-SOL',
@@ -3226,7 +3287,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '5F5W8nkQpXnb5ewS2GiUCuWAiamZpzGEMBciwaZ72frr',
     serumPcVaultAccount: 'CdWhLReMv1A4BJQkogvMwxVVop6agSW22YzQBzKUCS1y',
     serumVaultSigner: 'GRiN6BiHeaa2wrFEpqzR397d6RqefCSRhnQVsVscwT3r',
-    official: true
+    official: true,
   },
   {
     name: 'whETH-USDC',
@@ -3253,7 +3314,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '8cCoWNtgCL7pMapGZ6XQ6NSyD1KC9cosUEs4QgeVq49d',
     serumPcVaultAccount: 'C7KrymKrLWhCsSjFaUquXU3SYRmgYLRmMjQ4dyQeFiGE',
     serumVaultSigner: 'FG3z1H2BBsf5ekEAxSc1K6DERuAuiXpSdUGkYecQrP5v',
-    official: true
+    official: true,
   },
   {
     name: 'weUNI-USDC',
@@ -3280,7 +3341,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '4c4EMg5rPDx4quJdo3tL1uvQVpnoLLPKzMDn224NtER7',
     serumPcVaultAccount: '8MCzvWSskaoJpcXNVMui9GfzYMaMBQKPvE9GpqVZWtxq',
     serumVaultSigner: 'E4D2s9V4wuh6MMEJp7zkh6rcGgnoncJtMFFHjo4y1d5v',
-    official: true
+    official: true,
   },
   {
     name: 'weSUSHI-USDC',
@@ -3307,7 +3368,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '2DiofKbhznosm6ngnVXZY9r6j3WypkK6PXZu4XVhrUwS',
     serumPcVaultAccount: 'FwRAP48S9kwXFgiBDHU4NvuGkFnqctXEurgLFZFqdt2Z',
     serumVaultSigner: '4BRTPsziQ1QcKtsqAiXjnJe5rASuu41VXF1Bt5zpHqJs',
-    official: true
+    official: true,
   },
   {
     name: 'CYS-USDC',
@@ -3334,7 +3395,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '4PfqVvYg6tshSnMBMrXUwzYdS9gZvoxWFwGeLEx6BKow',
     serumPcVaultAccount: '81WG3s7xWe8aT6nf3r3t6sBuoMFb4QPiEZ2caENXQuKr',
     serumVaultSigner: 'FeGULrcjRyxHyRJTAUt84TqjR89biLnwwtjReWtRNoy2',
-    official: true
+    official: true,
   },
   {
     name: 'SAMO-USDC',
@@ -3361,7 +3422,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'HgKq27kVsH6bFdHru5p3ohnrL2d4D776Yiptkzv2ntwX',
     serumPcVaultAccount: 'JzkBGgCZLSzuZrC2XAmq5F4BRHmvhZtiUrbxsMP2BP6',
     serumVaultSigner: '679pdaM91fct45cM3nCvzBN57UGCFHe1CTSJwSRqjGwJ',
-    official: true
+    official: true,
   },
   {
     name: 'ABR-USDC',
@@ -3388,7 +3449,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '9yg6VjgPUbojGn9d2n3UpX7B6gz7todGfTcV8apV5wkL',
     serumPcVaultAccount: 'BDdh4ane6wXkRdbqUuMGYYR4ggf3GufUbjT2TxpHiAzU',
     serumVaultSigner: 'A3LkbNQUjz1q3Ux5kQKCzNMFJw3yxk9qx1RtuQBXbZZe',
-    official: true
+    official: true,
   },
   {
     name: 'IN-USDC',
@@ -3415,7 +3476,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'De4wrN3UtHs783VTZjqoFZtP2v95pMWFx1KCqmkWBXqU',
     serumPcVaultAccount: 'DiiAfxX3J5apQ8SJ42Z4z2USTK3QbhksTzniAugLaG91',
     serumVaultSigner: 'D8QQQMut9bbPfpCXHgbwoPSF4KNYSg7SyRUGF828dBfZ',
-    official: true
+    official: true,
   },
   {
     name: 'weDYDX-USDC',
@@ -3442,7 +3503,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'CXxN6hGatd5nK7uPwxvxHYmqvM4b88eKb9fcHapRhtda',
     serumPcVaultAccount: 'NMWKX4jfzkKvRBYkcvurus8aofaHZ8MwMNYqudztWZh',
     serumVaultSigner: 'DD6e6WMaZ3JePsBNP9Eoz9aJsD3bZ81EjMvUSWF96qQx',
-    official: true
+    official: true,
   },
   {
     name: 'STARS-USDC',
@@ -3469,7 +3530,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: 'AzhvXGjqJtDW4ieSYVje3zxL14TP1pGJv6uULR2F86uR',
     serumPcVaultAccount: '8SrtqysGeiKkXWMGMgee9frWbGdhXZr9gWHh2VKRnvkZ',
     serumVaultSigner: 'EN7RnB2RVxeDcTQWFBAuaf5Bg9sEuHhwwWiuj1TFHEuC',
-    official: true
+    official: true,
   },
   {
     name: 'weAXS-USDC',
@@ -3496,7 +3557,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '69bNeKy1gM4xDfSfjCaVeGpoBR2hPeXioJMNShu1BjdS',
     serumPcVaultAccount: 'Gzbck4nwKYEEmwHxJxBpBpGhuMZaDhL1UqVBVFTrReki',
     serumVaultSigner: '2qodg1XKZ5hauWnz1hBBfUWzMbRqABym2hMgLSS7pmJ2',
-    official: true
+    official: true,
   },
   {
     name: 'weSHIB-USDC',
@@ -3523,7 +3584,7 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '7nbNVNdhzZoD3KdjKnGRXbb9pPnDP2CSK1tPoRNvq94m',
     serumPcVaultAccount: '6ovLsr9T6754PrgH3QwFCPtjizWEh6H3DDpc3QXnMsqi',
     serumVaultSigner: 'HoDhphLcgw8hb6GdTicv6V9are7Yi7xXvUriwWwRWuRk',
-    official: true
+    official: true,
   },
   {
     name: 'SBR-USDC',
@@ -3550,6 +3611,6 @@ export const LIQUIDITY_POOLS: LiquidityPoolInfo[] = [
     serumCoinVaultAccount: '38r5pRYVzdScrJNZowNyrpjVbtRKQ5JMcQxn7PgKE45L',
     serumPcVaultAccount: '4YqAGXQEQTQbn4uKX981yCiSjUuYPV8aCajc9qQh3QPy',
     serumVaultSigner: '84aqZGKMzbr8ddA267ML7JUTAjieVJe8oR1yGUaKwP53',
-    official: true
-  }
-]
+    official: true,
+  },
+];
