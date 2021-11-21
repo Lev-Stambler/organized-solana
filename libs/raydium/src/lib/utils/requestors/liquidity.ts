@@ -1,4 +1,4 @@
-import { cloneDeep } from 'lodash-es';
+import { cloneDeep } from 'lodash';
 import { MARKET_STATE_LAYOUT_V2 } from '@project-serum/serum/lib/market';
 
 import { AccountInfo, Connection, PublicKey } from '@solana/web3.js';
@@ -32,8 +32,9 @@ export interface ILiquidityPools {
   [mint: string]: LiquidityPoolInfo;
 }
 
-export const requestLiquidityInfos = async (conn: Connection): Promise<ILiquidityPools> => {
-
+export const requestLiquidityInfos = async (
+  conn: Connection
+): Promise<ILiquidityPools> => {
   let ammAll: {
     publicKey: PublicKey;
     accountInfo: AccountInfo<Buffer>;
@@ -266,7 +267,9 @@ export const requestLiquidityInfos = async (conn: Connection): Promise<ILiquidit
     liquidityPools[lp.mintAddress] = poolInfo;
   });
 
+  console.log("BBBBBBBBBBB")
   const multipleInfo = await getMultipleAccounts(conn, publicKeys, commitment);
+  console.log("AAAAAAAAA")
 
   multipleInfo.forEach((info) => {
     if (info) {

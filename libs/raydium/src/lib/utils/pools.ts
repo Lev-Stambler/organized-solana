@@ -1,4 +1,4 @@
-import { cloneDeep } from 'lodash-es';
+import { cloneDeep } from 'lodash';
 
 // @ts-ignore
 import SERUM_MARKETS from '@project-serum/serum/lib/markets.json';

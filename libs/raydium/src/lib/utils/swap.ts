@@ -481,24 +481,22 @@ export function forecastSell(
 //   };
 //   return routes.map(getSwapFromRoute);
 // }
+export interface SwapArgs {
+  route: LiquidityPoolInfo;
+  outMint: PublicKey;
+  estimateOut: BigNumber;
+  minOut: BigNumber;
+}
 
 // slippage tol is like 0.5
 // TODO: xzzzz
 export const getBestSwapOrRoute = async (
   fromCoinMint: string,
   toCoinMint: string,
-  fromCoinAccount: PublicKey,
-  toCoinAccount: PublicKey,
-  owner: PublicKey,
   amountIn: string,
   slippageTolerance: number,
   conn: Connection
-): Promise<{
-  type: 'swap' | 'route';
-  route: LiquidityPoolInfo | [LiquidityPoolInfo, LiquidityPoolInfo];
-  estimateOut: BigNumber;
-  minOut: BigNumber;
-}> => {
+): Promise<SwapArgs> => {
   // TODO: static
   const liquidityPools = await requestLiquidityInfos(conn);
   const fromCoin = getTokenByMintAddress(fromCoinMint);
@@ -508,26 +506,37 @@ export const getBestSwapOrRoute = async (
   } else if (!toCoin) {
     throw `Could not find the info for the mint ${toCoinMint}`;
   }
-  const {
-    route,
-    usedRouteInfo,
-    estimate: estimateRoute,
-    minOut: minOutRoute,
-  } = getBestRoute(
+  const routeInfo = getBestRoute(
     fromCoin,
     toCoin,
     amountIn,
     slippageTolerance,
     liquidityPools
   );
+
+  const ammInfo = getBestAmm(
+    fromCoin,
+    toCoin,
+    amountIn,
+    slippageTolerance,
+    liquidityPools
+  );
+
+  console.log(ammInfo, routeInfo);
+
+  if (!routeInfo && !ammInfo)
+    throw `No route found to swap between ${fromCoinMint} ${toCoinMint}`;
   const {
-    pool: ammPool,
-    estimate: estimateAmm,
-    minOut: minOutAmm,
-  } = getBestAmm(fromCoin, toCoin, amountIn, slippageTolerance, liquidityPools);
+    route,
+    usedRouteInfo,
+    estimate: estimateRoute,
+    minOut: minOutRoute,
+  } = routeInfo ?? {};
+
+  const { pool: ammPool, estimate: estimateAmm, minOut: minOutAmm } = ammInfo;
   // TODO: compare and such, for now, j amm
   return {
-    type: 'swap',
+    outMint: new PublicKey(toCoin.mintAddress),
     estimateOut: estimateAmm.toWei(),
     minOut: minOutAmm.toWei(),
     route: ammPool,
@@ -629,6 +638,39 @@ export const getBestSwapOrRoute = async (
   //     Math.floor(getBigNumber(amountOut.toWei()))
   //   );
   // }
+};
+
+export const getSwapInstr = (
+  poolInfo: LiquidityPoolInfo,
+  fromCoinAccount: PublicKey,
+  toCoinAccount: PublicKey,
+  owner: PublicKey,
+  amountIn: BigNumber,
+  minOut: BigNumber
+) => {
+  const inst = swapInstruction(
+    new PublicKey(poolInfo.programId),
+    new PublicKey(poolInfo.ammId),
+    new PublicKey(poolInfo.ammAuthority),
+    new PublicKey(poolInfo.ammOpenOrders),
+    new PublicKey(poolInfo.ammTargetOrders),
+    new PublicKey(poolInfo.poolCoinTokenAccount),
+    new PublicKey(poolInfo.poolPcTokenAccount),
+    new PublicKey(poolInfo.serumProgramId),
+    new PublicKey(poolInfo.serumMarket),
+    new PublicKey(poolInfo.serumBids),
+    new PublicKey(poolInfo.serumAsks),
+    new PublicKey(poolInfo.serumEventQueue),
+    new PublicKey(poolInfo.serumCoinVaultAccount),
+    new PublicKey(poolInfo.serumPcVaultAccount),
+    new PublicKey(poolInfo.serumVaultSigner),
+    fromCoinAccount,
+    toCoinAccount,
+    owner,
+    Math.floor(getBigNumber(amountIn)),
+    Math.floor(getBigNumber(minOut))
+  );
+  return inst;
 };
 
 // Get the best across a route from Tok A to a middle pool to Tok B

@@ -1,6 +1,6 @@
 // @ts-ignore
 import { nu64, seq, struct, u8 } from 'buffer-layout'
-import { cloneDeep } from 'lodash-es'
+import { cloneDeep } from 'lodash'
 
 import { publicKey, u64 } from '@project-serum/borsh'
 import { Account, Connection, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js'

@@ -4,7 +4,7 @@ import { sendTransaction, findAssociatedTokenAddress, createAssociatedTokenAccou
 import { Token, u64 as U64 } from '@solana/spl-token'
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from './ids'
 
-import { get } from 'lodash-es'
+import { get } from 'lodash'
 import { FarmInfo } from './farms'
 import { TokenAmount } from './safe-math'
 import { withdrawInstruction } from './stake'
