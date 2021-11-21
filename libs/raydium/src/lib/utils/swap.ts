@@ -43,6 +43,7 @@ import { LiquidityPoolInfo, LIQUIDITY_POOLS } from './pools';
 import BN = require('bn.js');
 import { getLiquidityInfoSimilar } from './liquidity';
 import { ILiquidityPools, requestLiquidityInfos } from './requestors/liquidity';
+import BigNumber from 'bignumber.js';
 
 export function getOutAmount(
   market: any,
@@ -483,7 +484,7 @@ export function forecastSell(
 
 // slippage tol is like 0.5
 // TODO: xzzzz
-export const buildSwapInstr = async (
+export const getBestSwapOrRoute = async (
   fromCoinMint: string,
   toCoinMint: string,
   fromCoinAccount: PublicKey,
@@ -492,7 +493,12 @@ export const buildSwapInstr = async (
   amountIn: string,
   slippageTolerance: number,
   conn: Connection
-) => {
+): Promise<{
+  type: 'swap' | 'route';
+  route: LiquidityPoolInfo | [LiquidityPoolInfo, LiquidityPoolInfo];
+  estimateOut: BigNumber;
+  minOut: BigNumber;
+}> => {
   // TODO: static
   const liquidityPools = await requestLiquidityInfos(conn);
   const fromCoin = getTokenByMintAddress(fromCoinMint);
@@ -505,7 +511,8 @@ export const buildSwapInstr = async (
   const {
     route,
     usedRouteInfo,
-    estimateFloat: estimateFloatRoute,
+    estimate: estimateRoute,
+    minOut: minOutRoute,
   } = getBestRoute(
     fromCoin,
     toCoin,
@@ -513,108 +520,115 @@ export const buildSwapInstr = async (
     slippageTolerance,
     liquidityPools
   );
-  const { pool: ammPool, estimateFloat: estimateFloatAmm } = getBestAmm(
-    fromCoin,
-    toCoin,
-    amountIn,
-    slippageTolerance,
-    liquidityPools
-  );
-  const amountInFormat = new TokenAmount(amountIn);
-  // TODO: compare which est is higher and use that one (check undef)
-  if (doAmm) {
-    const poolInfo = ammPool;
-    const amountOutMinFormat = new TokenAmount(estimateOut); // TODO: here w/ slippage?
-    const inst = swapInstruction(
-      new PublicKey(poolInfo.programId),
-      new PublicKey(poolInfo.ammId),
-      new PublicKey(poolInfo.ammAuthority),
-      new PublicKey(poolInfo.ammOpenOrders),
-      new PublicKey(poolInfo.ammTargetOrders),
-      new PublicKey(poolInfo.poolCoinTokenAccount),
-      new PublicKey(poolInfo.poolPcTokenAccount),
-      new PublicKey(poolInfo.serumProgramId),
-      new PublicKey(poolInfo.serumMarket),
-      new PublicKey(poolInfo.serumBids),
-      new PublicKey(poolInfo.serumAsks),
-      new PublicKey(poolInfo.serumEventQueue),
-      new PublicKey(poolInfo.serumCoinVaultAccount),
-      new PublicKey(poolInfo.serumPcVaultAccount),
-      new PublicKey(poolInfo.serumVaultSigner),
-      fromCoinAccount,
-      toCoinAccount,
-      owner,
-      Math.floor(getBigNumber(amountInFormat.toWei())),
-      Math.floor(getBigNumber(amountOutMinFormat.toWei()))
-    );
-  } else if (doRoute) {
-    const poolInfoA = route[0];
-    const poolInfoB = route[1];
-    let midMint = usedRouteInfo.middle_coin;
-    let fromMint = fromCoin.mintAddress;
-    let toMint = toCoin.mintAddress;
-    if (fromMint === NATIVE_SOL.mintAddress) fromMint = TOKENS.WSOL.mintAddress;
-    if (midMint === NATIVE_SOL.mintAddress) midMint = TOKENS.WSOL.mintAddress;
-    if (toMint === NATIVE_SOL.mintAddress) toMint = TOKENS.WSOL.mintAddress;
+  const {
+    pool: ammPool,
+    estimate: estimateAmm,
+    minOut: minOutAmm,
+  } = getBestAmm(fromCoin, toCoin, amountIn, slippageTolerance, liquidityPools);
+  // TODO: compare and such, for now, j amm
+  return {
+    type: 'swap',
+    estimateOut: estimateAmm.toWei(),
+    minOut: minOutAmm.toWei(),
+    route: ammPool,
+  };
+  // const amountInFormat = new TokenAmount(amountIn);
+  // // TODO: compare which est is higher and use that one (check undef)
+  // const doAmm = true;
+  // const estimatedOut = 0;
+  // if (doAmm) {
+  //   const poolInfo = ammPool;
+  //   const amountOutMinFormat = new TokenAmount(estimateOut); // TODO: here w/ slippage?
+  //   const inst = swapInstruction(
+  //     new PublicKey(poolInfo.programId),
+  //     new PublicKey(poolInfo.ammId),
+  //     new PublicKey(poolInfo.ammAuthority),
+  //     new PublicKey(poolInfo.ammOpenOrders),
+  //     new PublicKey(poolInfo.ammTargetOrders),
+  //     new PublicKey(poolInfo.poolCoinTokenAccount),
+  //     new PublicKey(poolInfo.poolPcTokenAccount),
+  //     new PublicKey(poolInfo.serumProgramId),
+  //     new PublicKey(poolInfo.serumMarket),
+  //     new PublicKey(poolInfo.serumBids),
+  //     new PublicKey(poolInfo.serumAsks),
+  //     new PublicKey(poolInfo.serumEventQueue),
+  //     new PublicKey(poolInfo.serumCoinVaultAccount),
+  //     new PublicKey(poolInfo.serumPcVaultAccount),
+  //     new PublicKey(poolInfo.serumVaultSigner),
+  //     fromCoinAccount,
+  //     toCoinAccount,
+  //     owner,
+  //     Math.floor(getBigNumber(amountInFormat.toWei())),
+  //     Math.floor(getBigNumber(amountOutMinFormat.toWei()))
+  //   );
+  // } else if (doRoute) {
+  //   const poolInfoA = route[0];
+  //   const poolInfoB = route[1];
+  //   let midMint = usedRouteInfo.middle_coin;
+  //   let fromMint = fromCoin.mintAddress;
+  //   let toMint = toCoin.mintAddress;
+  //   if (fromMint === NATIVE_SOL.mintAddress) fromMint = TOKENS.WSOL.mintAddress;
+  //   if (midMint === NATIVE_SOL.mintAddress) midMint = TOKENS.WSOL.mintAddress;
+  //   if (toMint === NATIVE_SOL.mintAddress) toMint = TOKENS.WSOL.mintAddress;
 
-    const { publicKey } = await findProgramAddress(
-      [
-        new PublicKey(poolInfoA.ammId).toBuffer(),
-        new PublicKey(midMint).toBuffer(),
-        owner.toBuffer(),
-      ],
-      new PublicKey(ROUTE_SWAP_PROGRAM_ID)
-    );
+  //   const { publicKey } = await findProgramAddress(
+  //     [
+  //       new PublicKey(poolInfoA.ammId).toBuffer(),
+  //       new PublicKey(midMint).toBuffer(),
+  //       owner.toBuffer(),
+  //     ],
+  //     new PublicKey(ROUTE_SWAP_PROGRAM_ID)
+  //   );
 
-    const instA = routeSwapInInstruction(
-      new PublicKey(ROUTE_SWAP_PROGRAM_ID),
-      new PublicKey(LIQUIDITY_POOL_PROGRAM_ID_V4),
-      new PublicKey(poolInfoA.ammId),
-      new PublicKey(poolInfoB.ammId),
-      new PublicKey(poolInfoA.ammAuthority),
-      new PublicKey(poolInfoA.ammOpenOrders),
-      new PublicKey(poolInfoA.ammTargetOrders),
-      new PublicKey(poolInfoA.poolCoinTokenAccount),
-      new PublicKey(poolInfoA.poolPcTokenAccount),
-      new PublicKey(poolInfoA.serumProgramId),
-      new PublicKey(poolInfoA.serumMarket),
-      new PublicKey(poolInfoA.serumBids),
-      new PublicKey(poolInfoA.serumAsks),
-      new PublicKey(poolInfoA.serumEventQueue),
-      new PublicKey(poolInfoA.serumCoinVaultAccount),
-      new PublicKey(poolInfoA.serumPcVaultAccount),
-      new PublicKey(poolInfoA.serumVaultSigner),
-      fromCoinAccount,
-      newMiddleTokenAccount, // TODO:
-      publicKey,
-      owner,
-      Math.floor(getBigNumber(amountInFormat.toWei()))
-    );
-    const instB = routeSwapOutInstruction(
-      new PublicKey(ROUTE_SWAP_PROGRAM_ID),
-      new PublicKey(LIQUIDITY_POOL_PROGRAM_ID_V4),
-      new PublicKey(poolInfoA.ammId),
-      new PublicKey(poolInfoB.ammId),
-      new PublicKey(poolInfoB.ammAuthority),
-      new PublicKey(poolInfoB.ammOpenOrders),
-      new PublicKey(poolInfoB.ammTargetOrders),
-      new PublicKey(poolInfoB.poolCoinTokenAccount),
-      new PublicKey(poolInfoB.poolPcTokenAccount),
-      new PublicKey(poolInfoB.serumProgramId),
-      new PublicKey(poolInfoB.serumMarket),
-      new PublicKey(poolInfoB.serumBids),
-      new PublicKey(poolInfoB.serumAsks),
-      new PublicKey(poolInfoB.serumEventQueue),
-      new PublicKey(poolInfoB.serumCoinVaultAccount),
-      new PublicKey(poolInfoB.serumPcVaultAccount),
-      new PublicKey(poolInfoB.serumVaultSigner),
-      newMiddleTokenAccount,
-      toCoinAccount,
-      publicKey,
-      owner,
-      Math.floor(getBigNumber(amountOut.toWei()))
-    );
-  }
+  //   const instA = routeSwapInInstruction(
+  //     new PublicKey(ROUTE_SWAP_PROGRAM_ID),
+  //     new PublicKey(LIQUIDITY_POOL_PROGRAM_ID_V4),
+  //     new PublicKey(poolInfoA.ammId),
+  //     new PublicKey(poolInfoB.ammId),
+  //     new PublicKey(poolInfoA.ammAuthority),
+  //     new PublicKey(poolInfoA.ammOpenOrders),
+  //     new PublicKey(poolInfoA.ammTargetOrders),
+  //     new PublicKey(poolInfoA.poolCoinTokenAccount),
+  //     new PublicKey(poolInfoA.poolPcTokenAccount),
+  //     new PublicKey(poolInfoA.serumProgramId),
+  //     new PublicKey(poolInfoA.serumMarket),
+  //     new PublicKey(poolInfoA.serumBids),
+  //     new PublicKey(poolInfoA.serumAsks),
+  //     new PublicKey(poolInfoA.serumEventQueue),
+  //     new PublicKey(poolInfoA.serumCoinVaultAccount),
+  //     new PublicKey(poolInfoA.serumPcVaultAccount),
+  //     new PublicKey(poolInfoA.serumVaultSigner),
+  //     fromCoinAccount,
+  //     newMiddleTokenAccount, // TODO:
+  //     publicKey,
+  //     owner,
+  //     Math.floor(getBigNumber(amountInFormat.toWei()))
+  //   );
+  //   const instB = routeSwapOutInstruction(
+  //     new PublicKey(ROUTE_SWAP_PROGRAM_ID),
+  //     new PublicKey(LIQUIDITY_POOL_PROGRAM_ID_V4),
+  //     new PublicKey(poolInfoA.ammId),
+  //     new PublicKey(poolInfoB.ammId),
+  //     new PublicKey(poolInfoB.ammAuthority),
+  //     new PublicKey(poolInfoB.ammOpenOrders),
+  //     new PublicKey(poolInfoB.ammTargetOrders),
+  //     new PublicKey(poolInfoB.poolCoinTokenAccount),
+  //     new PublicKey(poolInfoB.poolPcTokenAccount),
+  //     new PublicKey(poolInfoB.serumProgramId),
+  //     new PublicKey(poolInfoB.serumMarket),
+  //     new PublicKey(poolInfoB.serumBids),
+  //     new PublicKey(poolInfoB.serumAsks),
+  //     new PublicKey(poolInfoB.serumEventQueue),
+  //     new PublicKey(poolInfoB.serumCoinVaultAccount),
+  //     new PublicKey(poolInfoB.serumPcVaultAccount),
+  //     new PublicKey(poolInfoB.serumVaultSigner),
+  //     newMiddleTokenAccount,
+  //     toCoinAccount,
+  //     publicKey,
+  //     owner,
+  //     Math.floor(getBigNumber(amountOut.toWei()))
+  //   );
+  // }
 };
 
 // Get the best across a route from Tok A to a middle pool to Tok B
@@ -631,8 +645,8 @@ export const getBestRoute = (
     toCoin.mintAddress
   );
   let maxAmountOut = 0.0;
-  let toCoinAmount = '';
-  let toCoinWithSlippage = null;
+  let toCoinAmount: TokenAmount;
+  let toCoinWithSlippage: TokenAmount = null;
   let impact = 0;
   let usedRouteInfo;
   let middleCoinAmount;
@@ -668,7 +682,7 @@ export const getBestRoute = (
 
     const fAmountOut = parseFloat(amountOut.fixed());
     if (fAmountOut > maxAmountOut) {
-      toCoinAmount = amountOut.fixed();
+      toCoinAmount = amountOut;
       maxAmountOut = fAmountOut;
       toCoinWithSlippage = amountOutWithSlippage;
       impact = (((priceImpactA + 100) * (priceImpact + 100)) / 10000 - 1) * 100;
@@ -711,7 +725,8 @@ export const getBestRoute = (
     // TODO: have used route have an interface
     usedRouteInfo,
     route: routeInfos[bestRouteIdx],
-    estimateFloat: maxAmountOut,
+    estimate: toCoinAmount,
+    minOut: toCoinWithSlippage,
   };
 };
 
@@ -721,7 +736,9 @@ export const getBestAmm = (
   amountIn: string,
   slippageTolerance: number,
   liquidityPools: ILiquidityPools
-): { pool: LiquidityPoolInfo; estimateFloat: number } | undefined => {
+):
+  | { pool: LiquidityPoolInfo; estimate: TokenAmount; minOut: TokenAmount }
+  | undefined => {
   const amms = (Object.values(liquidityPools) as LiquidityPoolInfo[]).filter(
     (p) =>
       p.version === 4 &&
@@ -733,8 +750,8 @@ export const getBestAmm = (
   );
   let bestAmmIdx = -1;
   let maxAmountOut = 0.0;
-  let toCoinAmount = '';
-  let toCoinWithSlippage = null;
+  let toCoinAmount: TokenAmount;
+  let toCoinWithSlippage: TokenAmount;
   let impact = 0;
   let endpoint = '';
   let usedAmmId;
@@ -752,7 +769,7 @@ export const getBestAmm = (
     const fAmountOut = parseFloat(amountOut.fixed());
     if (fAmountOut > maxAmountOut) {
       maxAmountOut = fAmountOut;
-      toCoinAmount = amountOut.fixed();
+      toCoinAmount = amountOut;
       toCoinWithSlippage = amountOutWithSlippage;
       impact = priceImpact;
       // price = fAmountOut
@@ -775,7 +792,8 @@ export const getBestAmm = (
   if (bestAmmIdx === -1) return undefined;
   return {
     pool: amms[bestAmmIdx],
-    estimateFloat: maxAmountOut,
+    estimate: toCoinAmount,
+    minOut: toCoinWithSlippage,
   };
 };
 
