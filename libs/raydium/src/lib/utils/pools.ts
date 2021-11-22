@@ -11,6 +11,7 @@ import {
   SERUM_PROGRAM_ID_V3,
 } from './ids';
 import { LP_TOKENS, NATIVE_SOL, TokenInfo, TOKENS } from './tokens';
+export { ILiquidityPools, requestLiquidityInfos } from './requestors/liquidity';
 
 export interface LiquidityPoolInfo {
   name: string;
